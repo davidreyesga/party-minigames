@@ -15,28 +15,53 @@ export const colors = {
 
   text: "#EADFEC",
   textMuted: "#D0C2D5",
+  onBackground: "#EADFEC",
+  inverseSurface: "#EADFEC",
+  inverseOnSurface: "#342E38",
   outline: "#998D9E",
   outlineVariant: "#4D4353",
   border: "#4D4353", // Compatibility alias.
 
   // Brand and Stitch state colors.
   primary: "#E0B6FF",
+  surfaceTint: "#E0B6FF",
   primaryContainer: "#9D4EDD",
   primaryInverse: "#8433C4",
   onPrimary: "#4C007D",
   onPrimaryContainer: "#FFFDFF",
+  primaryFixed: "#F2DAFF",
+  primaryFixedDim: "#E0B6FF",
+  onPrimaryFixed: "#2E004E",
+  onPrimaryFixedVariant: "#6A0BAA",
 
+  secondary: "#E6FEFF",
+  onSecondary: "#003739",
+  secondaryContainer: "#00F4FE",
+  onSecondaryContainer: "#006C71",
   cyan: "#00F4FE",
   cyanDim: "#00DCE5",
   cyanSoft: "#63F7FF",
   onCyan: "#002021",
+  secondaryFixed: "#63F7FF",
+  secondaryFixedDim: "#00DCE5",
+  onSecondaryFixed: "#002021",
+  onSecondaryFixedVariant: "#004F53",
   glow: "#00DCE5", // Compatibility alias.
 
+  tertiary: "#FFB1C3",
+  onTertiary: "#66002C",
+  tertiaryContainer: "#E5006D",
+  onTertiaryContainer: "#FFFDFF",
   pink: "#E5006D",
   pinkSoft: "#FFB1C3",
   pinkFixed: "#FFD9E0",
+  tertiaryFixed: "#FFD9E0",
+  tertiaryFixedDim: "#FFB1C3",
+  onTertiaryFixed: "#3F0019",
+  onTertiaryFixedVariant: "#8F0041",
 
   error: "#FFB4AB",
+  onError: "#690005",
   errorContainer: "#93000A",
   onErrorContainer: "#FFDAD6",
   danger: "#FFB4AB", // Compatibility alias.
@@ -100,34 +125,34 @@ export const spacing = {
 
 export const shadow = {
   ios: {
-    shadowColor: "#000000",
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
+    shadowColor: colors.primaryContainer,
+    shadowOpacity: 0.18,
+    shadowRadius: 30,
+    shadowOffset: { width: 0, height: 0 },
   } as const,
-  elevation: 8,
+  elevation: 5,
 } as const;
 
 export const glow = {
   primary: {
     color: colors.primaryContainer,
-    opacity: 0.35,
-    radius: 18,
+    opacity: 0.2,
+    radius: 30,
   },
   cyan: {
     color: colors.cyanDim,
-    opacity: 0.35,
-    radius: 14,
+    opacity: 0.3,
+    radius: 18,
   },
   pink: {
     color: colors.pink,
     opacity: 0.35,
-    radius: 14,
+    radius: 16,
   },
   success: {
     color: colors.success,
     opacity: 0.25,
-    radius: 14,
+    radius: 16,
   },
 } as const;
 
@@ -139,10 +164,10 @@ export const blur = {
 export const glowShadow = (glowColor: string) =>
   ({
     shadowColor: glowColor,
-    shadowOpacity: 0.35,
-    shadowRadius: 14,
+    shadowOpacity: 0.24,
+    shadowRadius: 24,
     shadowOffset: { width: 0, height: 0 },
-    elevation: 10,
+    elevation: 8,
   }) as const;
 
 // Temporary compatibility tokens for components pending visual refactor.
