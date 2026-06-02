@@ -6,6 +6,7 @@ type Props = {
   name?: string;
   color?: string;
   size?: number;
+  selected?: boolean;
   active?: boolean;
 };
 
@@ -22,24 +23,29 @@ export default function PlayerAvatar({
   name,
   color = colors.primaryContainer,
   size = 48,
+  selected,
   active = false,
 }: Props) {
+  const highlighted = selected ?? active;
+
   return (
     <View
       accessibilityLabel={name ? `Jugador ${name}` : "Jugador sin nombre"}
+      accessibilityRole="image"
+      accessibilityState={{ selected: highlighted }}
       style={{
         alignItems: "center",
         backgroundColor: color,
-        borderColor: active ? colors.cyanDim : colors.innerBorder,
+        borderColor: highlighted ? colors.cyanDim : colors.innerBorder,
         borderRadius: radius.pill,
-        borderWidth: active ? 3 : 1,
+        borderWidth: highlighted ? 3 : 1,
         height: size,
         justifyContent: "center",
         shadowColor: glow.cyan.color,
-        shadowOpacity: active ? glow.cyan.opacity : 0,
+        shadowOpacity: highlighted ? glow.cyan.opacity : 0,
         shadowRadius: glow.cyan.radius,
         shadowOffset: { width: 0, height: 0 },
-        elevation: active ? 7 : 0,
+        elevation: highlighted ? 7 : 0,
         width: size,
       }}
     >

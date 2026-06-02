@@ -2,11 +2,15 @@ import { Text, View } from "react-native";
 
 import { colors, radius } from "../../theme/tokens";
 
-type Tone = "primary" | "cyan" | "pink" | "success" | "warning" | "neutral";
+type Tone = "primary" | "cyan" | "pink" | "success" | "warning" | "danger" | "neutral";
+type Variant = "default" | "level" | "penalty" | "success" | "danger";
 
 type Props = {
   label: string;
   tone?: Tone;
+  variant?: Variant;
+  color?: string;
+  selected?: boolean;
 };
 
 const tones: Record<Tone, { backgroundColor: string; borderColor: string; textColor: string }> = {
@@ -35,6 +39,11 @@ const tones: Record<Tone, { backgroundColor: string; borderColor: string; textCo
     borderColor: colors.warning,
     textColor: colors.warningSoft,
   },
+  danger: {
+    backgroundColor: colors.errorContainer,
+    borderColor: colors.error,
+    textColor: colors.onErrorContainer,
+  },
   neutral: {
     backgroundColor: colors.surfaceHigh,
     borderColor: colors.outlineVariant,
@@ -42,8 +51,25 @@ const tones: Record<Tone, { backgroundColor: string; borderColor: string; textCo
   },
 };
 
-export default function GameBadge({ label, tone = "neutral" }: Props) {
-  const palette = tones[tone];
+const variants: Record<Variant, Tone> = {
+  default: "neutral",
+  level: "primary",
+  penalty: "warning",
+  success: "success",
+  danger: "danger",
+};
+
+export default function GameBadge({
+  label,
+  tone,
+  variant = "default",
+  color,
+  selected = false,
+}: Props) {
+  const basePalette = tones[tone ?? variants[variant]];
+  const palette = color
+    ? { ...basePalette, borderColor: color, textColor: color }
+    : basePalette;
 
   return (
     <View
@@ -52,6 +78,11 @@ export default function GameBadge({ label, tone = "neutral" }: Props) {
         backgroundColor: palette.backgroundColor,
         borderColor: palette.borderColor,
         borderRadius: radius.pill,
+        shadowColor: palette.borderColor,
+        shadowOpacity: selected ? 0.28 : 0,
+        shadowRadius: selected ? 12 : 0,
+        shadowOffset: { width: 0, height: 0 },
+        elevation: selected ? 4 : 0,
       }}
     >
       <Text

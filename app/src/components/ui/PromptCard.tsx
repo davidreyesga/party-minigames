@@ -15,13 +15,16 @@ export default function PromptCard({ title, text, footnote }: Props) {
     <Card className="p-5" glow>
       {title ? <GameBadge label={title} tone="cyan" /> : null}
 
-      <View className={title ? "mt-4" : ""}>
-        <Text className="text-2xl font-extrabold leading-9" style={{ color: colors.text }}>
+      <View className={`${title ? "mt-5" : ""} min-h-[144px] justify-center`}>
+        <Text
+          className="text-center text-2xl font-extrabold leading-9"
+          style={{ color: colors.text }}
+        >
           {text}
         </Text>
 
         {footnote ? (
-          <Text className="mt-3 text-sm leading-5" style={{ color: colors.textMuted }}>
+          <Text className="mt-4 text-center text-sm leading-5" style={{ color: colors.textMuted }}>
             {footnote}
           </Text>
         ) : null}

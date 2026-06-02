@@ -6,7 +6,9 @@ type Status = "normal" | "warning" | "expired";
 
 type Props = {
   seconds: number;
+  totalSeconds?: number;
   label?: string;
+  dangerThreshold?: number;
   status?: Status;
   size?: number;
 };
@@ -19,19 +21,28 @@ const statusStyles: Record<Status, { color: string; glowColor: string }> = {
 
 export default function TimerRing({
   seconds,
+  totalSeconds,
   label = "Tiempo",
-  status = "normal",
+  dangerThreshold = 10,
+  status,
   size = 112,
 }: Props) {
-  const palette = statusStyles[status];
+  const displaySeconds = Math.max(0, Math.ceil(seconds));
+  const maxSeconds = Math.max(1, totalSeconds ?? displaySeconds, displaySeconds);
+  const progress = Math.min(100, Math.max(0, (displaySeconds / maxSeconds) * 100));
+  const visualStatus =
+    status ?? (displaySeconds === 0 ? "expired" : displaySeconds <= dangerThreshold ? "warning" : "normal");
+  const palette = statusStyles[visualStatus];
 
   return (
     <View
-      accessibilityLabel={`${label}: ${seconds} segundos`}
+      accessibilityLabel={`${label}: ${displaySeconds} segundos`}
+      accessibilityLiveRegion="polite"
       accessibilityRole="timer"
+      accessibilityValue={{ min: 0, max: maxSeconds, now: displaySeconds }}
       className="items-center justify-center"
       style={{
-        backgroundColor: colors.surfaceContainer,
+        backgroundColor: colors.glassFillStrong,
         borderColor: palette.color,
         borderRadius: radius.pill,
         borderWidth: 6,
@@ -45,11 +56,24 @@ export default function TimerRing({
       }}
     >
       <Text className="text-3xl font-extrabold" style={{ color: colors.text }}>
-        {seconds}
+        {displaySeconds}
       </Text>
       <Text className="text-[10px] font-extrabold tracking-widest" style={{ color: palette.color }}>
         {label.toUpperCase()}
       </Text>
+      <View
+        className="absolute bottom-3 left-4 right-4 h-1 overflow-hidden"
+        style={{ backgroundColor: colors.surfaceHigh, borderRadius: radius.pill }}
+      >
+        <View
+          className="h-full"
+          style={{
+            backgroundColor: palette.color,
+            borderRadius: radius.pill,
+            width: `${progress}%`,
+          }}
+        />
+      </View>
     </View>
   );
 }

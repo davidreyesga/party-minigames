@@ -5,6 +5,7 @@ import { colors, radius } from "../../theme/tokens";
 export type SegmentedOption<T extends string> = {
   key: T;
   label: string;
+  color?: string;
 };
 
 type Props<T extends string> = {
@@ -32,9 +33,12 @@ export default function SegmentedControl<T extends string>({
     >
       {options.map((option) => {
         const active = option.key === value;
+        const activeColor = option.color ?? colors.cyan;
+        const activeTextColor = option.color ? colors.onPrimaryContainer : colors.onCyan;
 
         return (
           <Pressable
+            accessibilityLabel={option.label}
             accessibilityRole="button"
             accessibilityState={{ disabled, selected: active }}
             disabled={disabled}
@@ -42,14 +46,19 @@ export default function SegmentedControl<T extends string>({
             onPress={() => onChange(option.key)}
             className="h-12 flex-1 items-center justify-center px-3"
             style={({ pressed }) => ({
-              backgroundColor: active ? colors.cyan : "transparent",
+              backgroundColor: active ? activeColor : "transparent",
               borderRadius: radius.pill,
+              shadowColor: activeColor,
+              shadowOpacity: active ? 0.28 : 0,
+              shadowRadius: active ? 12 : 0,
+              shadowOffset: { width: 0, height: 0 },
+              elevation: active ? 4 : 0,
               opacity: disabled ? 0.45 : pressed ? 0.86 : 1,
             })}
           >
             <Text
               className="text-xs font-extrabold tracking-wide"
-              style={{ color: active ? colors.onCyan : colors.textMuted }}
+              style={{ color: active ? activeTextColor : colors.textMuted }}
             >
               {option.label.toUpperCase()}
             </Text>

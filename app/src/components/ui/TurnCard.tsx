@@ -37,14 +37,14 @@ export default function TurnCard({ playerName, playerColor, subtitle }: Props) {
   return (
     <Animated.View
       style={{
-        backgroundColor: colors.surfaceContainer,
+        backgroundColor: colors.glassFillStrong,
         borderColor: colors.primaryContainer,
         borderRadius: radius.md,
         borderWidth: 4,
         padding: 16,
         shadowColor: glow.primary.color,
         shadowOpacity: glow.primary.opacity,
-        shadowRadius: 24,
+        shadowRadius: glow.primary.radius,
         shadowOffset: { width: 0, height: 0 },
         elevation: 10,
         transform: [
@@ -60,7 +60,7 @@ export default function TurnCard({ playerName, playerColor, subtitle }: Props) {
       <GameBadge label="Turno actual" tone="primary" />
 
       <View className="mt-4 flex-row items-center gap-3">
-        <PlayerAvatar name={playerName} color={playerColor} size={64} active />
+        <PlayerAvatar name={playerName} color={playerColor} size={64} selected />
 
         <View className="flex-1">
           <Text className="text-2xl font-extrabold" style={{ color: colors.text }}>
