@@ -1,51 +1,140 @@
 export const colors = {
-  bg: "#060814",
-  surface: "#0B1024",
-  surface2: "#0E1633",
-  border: "#1B2A4A",
+  // Electric Social surfaces and text.
+  background: "#16111A",
+  bg: "#16111A", // Compatibility alias.
+  surface: "#16111A",
+  surfaceDim: "#16111A",
+  surfaceLowest: "#110C15",
+  surfaceLow: "#1F1A22",
+  surfaceContainer: "#231E26",
+  surface2: "#231E26", // Compatibility alias.
+  surfaceHigh: "#2E2831",
+  surfaceHighest: "#39333C",
+  surfaceBright: "#3D3740",
+  surfaceVariant: "#39333C",
 
-  text: "#EAF2FF",
-  textMuted: "#9BB0D6",
+  text: "#EADFEC",
+  textMuted: "#D0C2D5",
+  outline: "#998D9E",
+  outlineVariant: "#4D4353",
+  border: "#4D4353", // Compatibility alias.
 
-  primary: "#3B82F6", // azul neon
-  glow: "#22D3EE", // cian glow
+  // Brand and Stitch state colors.
+  primary: "#E0B6FF",
+  primaryContainer: "#9D4EDD",
+  primaryInverse: "#8433C4",
+  onPrimary: "#4C007D",
+  onPrimaryContainer: "#FFFDFF",
 
-  danger: "#EF4444",
-  success: "#22C55E",
-  warning: "#F59E0B",
-};
+  cyan: "#00F4FE",
+  cyanDim: "#00DCE5",
+  cyanSoft: "#63F7FF",
+  onCyan: "#002021",
+  glow: "#00DCE5", // Compatibility alias.
+
+  pink: "#E5006D",
+  pinkSoft: "#FFB1C3",
+  pinkFixed: "#FFD9E0",
+
+  error: "#FFB4AB",
+  errorContainer: "#93000A",
+  onErrorContainer: "#FFDAD6",
+  danger: "#FFB4AB", // Compatibility alias.
+
+  // App-level semantic extensions.
+  success: "#10B981",
+  successStrong: "#059669",
+  warning: "#FB923C",
+  warningSoft: "#FDBA74",
+  scrim: "rgba(0, 0, 0, 0.60)",
+  glassFill: "rgba(35, 30, 38, 0.40)",
+  glassFillStrong: "rgba(22, 17, 26, 0.70)",
+  innerBorder: "rgba(255, 255, 255, 0.10)",
+
+  // Compatibility aliases for the current UI migration.
+  accent: "#FB923C",
+  panelStripe: "#9D4EDD",
+  partyPink: "#E5006D",
+  partyLime: "#10B981",
+  partyAmber: "#FB923C",
+  partyCyanSoft: "#63F7FF",
+} as const;
 
 export const levelColors = {
-  suave: { base: "#22C55E", glow: "#4ADE80" },
-  medio: { base: "#3B82F6", glow: "#60A5FA" },
-  intenso: { base: "#F59E0B", glow: "#FBBF24" },
-  extremo: { base: "#EF4444", glow: "#F87171" },
-};
+  suave: { base: colors.success, glow: "#6EE7B7" },
+  medio: { base: colors.cyanDim, glow: colors.cyanSoft },
+  intenso: { base: colors.warning, glow: colors.warningSoft },
+  extremo: { base: colors.pink, glow: colors.pinkSoft },
+} as const;
+
+export const gradients = {
+  primary: [colors.primaryContainer, colors.pink],
+  primaryDepth: [colors.primaryContainer, colors.primaryInverse],
+  avatar: [colors.primaryContainer, colors.cyan],
+  success: [colors.success, colors.successStrong],
+  ambient: {
+    purple: "rgba(157, 78, 221, 0.16)",
+    cyan: "rgba(0, 244, 254, 0.10)",
+  },
+} as const;
 
 export const radius = {
-  sm: 10,
-  md: 14,
-  lg: 18,
-  xl: 24,
+  sm: 8,
+  default: 16,
+  md: 24,
+  lg: 32,
+  xl: 48,
   pill: 999,
-};
+} as const;
 
 export const spacing = {
-  screenX: 20,
-  screenY: 16,
-};
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32,
+  safeMargin: 20,
+  screenX: 20, // Compatibility alias.
+  screenY: 16, // Compatibility alias.
+} as const;
 
 export const shadow = {
-  // iOS shadow
   ios: {
-    shadowColor: "#000",
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
+    shadowColor: "#000000",
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
     shadowOffset: { width: 0, height: 8 },
   } as const,
-  // Android elevation
   elevation: 8,
-};
+} as const;
+
+export const glow = {
+  primary: {
+    color: colors.primaryContainer,
+    opacity: 0.35,
+    radius: 18,
+  },
+  cyan: {
+    color: colors.cyanDim,
+    opacity: 0.35,
+    radius: 14,
+  },
+  pink: {
+    color: colors.pink,
+    opacity: 0.35,
+    radius: 14,
+  },
+  success: {
+    color: colors.success,
+    opacity: 0.25,
+    radius: 14,
+  },
+} as const;
+
+export const blur = {
+  panel: 20,
+  modal: 16,
+} as const;
 
 export const glowShadow = (glowColor: string) =>
   ({
@@ -55,3 +144,10 @@ export const glowShadow = (glowColor: string) =>
     shadowOffset: { width: 0, height: 0 },
     elevation: 10,
   }) as const;
+
+// Temporary compatibility tokens for components pending visual refactor.
+export const panelFx = {
+  stripeHeight: 5,
+  panelInset: 3,
+  cardBorderWidth: 1.5,
+} as const;

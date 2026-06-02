@@ -7,7 +7,7 @@ import Screen from "../components/ui/Screen";
 import Header from "../components/ui/Header";
 import Card from "../components/ui/Card";
 import TurnCard from "../components/ui/TurnCard";
-import { PrimaryButtonGiant, SecondaryButton, DangerButton } from "../components/ui/Button";
+import { PrimaryButtonGiant, DangerButton } from "../components/ui/Button";
 import { colors, radius } from "../theme/tokens";
 
 function PlayerAvatar({ name, color }: { name: string; color: string }) {
@@ -20,8 +20,11 @@ function PlayerAvatar({ name, color }: { name: string; color: string }) {
 
   return (
     <View
-      className="h-10 w-10 items-center justify-center rounded-full"
-      style={{ backgroundColor: color }}
+      className="h-11 w-11 items-center justify-center rounded-full border-2"
+      style={{
+        backgroundColor: color,
+        borderColor: colors.glow,
+      }}
     >
       <Text className="text-sm font-extrabold text-white">{initials}</Text>
     </View>
@@ -45,25 +48,25 @@ export default function LobbyScreen() {
     <Screen scroll>
       <Header
         title="Lobby"
-        subtitle="Agrega jugadores y controla turnos"
+        subtitle="Agrega jugadores y arranquen la ronda sin complicaciones."
         onRulesPress={() => {}}
       />
 
       <TurnCard
         playerName={currentPlayer?.name}
         playerColor={currentPlayer?.color}
-        subtitle="Usa el botón principal para pasar al siguiente."
+        subtitle="Cuando termine su reto, pasa el turno al siguiente."
       />
 
       <View className="mt-4 gap-3">
         <PrimaryButtonGiant label="SIGUIENTE TURNO" onPress={nextPlayer} />
-        <DangerButton label="RESETEAR JUGADORES" onPress={clearPlayers} />
+        <DangerButton label="REINICIAR JUGADORES" onPress={clearPlayers} />
       </View>
 
       <View className="mt-6">
         <Card className="p-4">
-          <Text className="text-xs font-bold tracking-widest" style={{ color: colors.textMuted }}>
-            AGREGAR JUGADOR
+          <Text className="text-xs font-extrabold tracking-widest" style={{ color: colors.textMuted }}>
+            NUEVO JUGADOR
           </Text>
 
           <View className="mt-3 flex-row gap-2">
@@ -76,7 +79,7 @@ export default function LobbyScreen() {
               style={{
                 backgroundColor: colors.surface2,
                 borderColor: colors.border,
-                borderWidth: 1,
+                borderWidth: 2,
                 borderRadius: radius.pill,
                 color: colors.text,
               }}
@@ -91,23 +94,24 @@ export default function LobbyScreen() {
                 addPlayer(name);
                 setName("");
               }}
-              className="h-12 items-center justify-center px-5 active:opacity-90"
-              style={{
+              className="h-12 items-center justify-center px-5"
+              style={({ pressed }) => ({
                 backgroundColor: colors.primary,
                 borderColor: colors.glow,
-                borderWidth: 1,
+                borderWidth: 2,
                 borderRadius: radius.pill,
-              }}
+                transform: [{ scale: pressed ? 0.98 : 1 }],
+              })}
             >
-              <Text className="text-sm font-extrabold text-white">AGREGAR</Text>
+              <Text className="text-sm font-extrabold tracking-wide text-white">AGREGAR</Text>
             </Pressable>
           </View>
         </Card>
       </View>
 
       <View className="mt-6">
-        <Text className="mb-2 text-xs font-bold tracking-widest" style={{ color: colors.textMuted }}>
-          JUGADORES ({players.length})
+        <Text className="mb-2 text-xs font-extrabold tracking-widest" style={{ color: colors.textMuted }}>
+          PLAYERS ({players.length})
         </Text>
 
         <FlatList
@@ -129,25 +133,26 @@ export default function LobbyScreen() {
                           {item.name}
                         </Text>
                         <Text
-                          className="text-xs font-bold"
+                          className="text-xs font-extrabold tracking-wide"
                           style={{ color: isCurrent ? colors.glow : colors.textMuted }}
                         >
-                          {isCurrent ? "TURNO ACTUAL" : "TOCA PARA PONER TURNO"}
+                          {isCurrent ? "TURNO ACTUAL" : "TOCA PARA ASIGNAR TURNO"}
                         </Text>
                       </View>
                     </View>
 
                     <Pressable
                       onPress={() => removePlayer(item.id)}
-                      className="px-4 py-2 active:opacity-80"
-                      style={{
+                      className="px-4 py-2"
+                      style={({ pressed }) => ({
                         backgroundColor: "#2A0B16",
                         borderColor: "#7F1D1D",
                         borderWidth: 1,
                         borderRadius: radius.pill,
-                      }}
+                        opacity: pressed ? 0.85 : 1,
+                      })}
                     >
-                      <Text className="text-xs font-extrabold" style={{ color: "#FCA5A5" }}>
+                      <Text className="text-xs font-extrabold tracking-wide" style={{ color: "#FCA5A5" }}>
                         QUITAR
                       </Text>
                     </Pressable>
@@ -158,8 +163,8 @@ export default function LobbyScreen() {
           }}
           ListEmptyComponent={() => (
             <View className="mt-6 items-center">
-              <Text style={{ color: colors.textMuted }}>
-                Agrega 2+ jugadores para empezar.
+              <Text className="text-sm font-semibold" style={{ color: colors.textMuted }}>
+                Agrega 2 o mas jugadores para empezar.
               </Text>
             </View>
           )}

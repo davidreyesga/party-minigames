@@ -9,7 +9,7 @@ import {
 import Screen from "../components/ui/Screen";
 import Header from "../components/ui/Header";
 import Card from "../components/ui/Card";
-import { colors, radius, levelColors } from "../theme/tokens";
+import { colors, levelColors, radius } from "../theme/tokens";
 
 function Segmented({
   value,
@@ -26,7 +26,7 @@ function Segmented({
       style={{
         backgroundColor: colors.surface2,
         borderColor: colors.border,
-        borderWidth: 1,
+        borderWidth: 2,
         borderRadius: radius.pill,
       }}
     >
@@ -36,16 +36,17 @@ function Segmented({
           <Pressable
             key={o.key}
             onPress={() => onChange(o.key)}
-            className="flex-1 items-center justify-center py-2 active:opacity-90"
-            style={{
+            className="flex-1 items-center justify-center py-2"
+            style={({ pressed }) => ({
               borderRadius: radius.pill,
               backgroundColor: active ? colors.surface : "transparent",
               borderWidth: active ? 1 : 0,
               borderColor: active ? colors.glow : "transparent",
-            }}
+              opacity: pressed ? 0.9 : 1,
+            })}
           >
             <Text
-              className="text-xs font-extrabold"
+              className="text-xs font-extrabold tracking-wide"
               style={{ color: active ? colors.text : colors.textMuted }}
             >
               {o.label.toUpperCase()}
@@ -71,7 +72,13 @@ function LevelRow({
       </Text>
       <View
         className="h-3 w-10 rounded-full"
-        style={{ backgroundColor: color.base, shadowColor: color.glow, shadowOpacity: 0.4, shadowRadius: 8, elevation: 6 }}
+        style={{
+          backgroundColor: color.base,
+          shadowColor: color.glow,
+          shadowOpacity: 0.4,
+          shadowRadius: 8,
+          elevation: 6,
+        }}
       />
     </View>
   );
@@ -91,17 +98,17 @@ export default function SettingsScreen() {
   return (
     <Screen scroll>
       <Header
-        title="Ajustes"
-        subtitle="Modo, nivel, topes y timers"
+        title="Control Deck"
+        subtitle="Ajusta nivel y tiempos para el estilo de tu grupo."
         onRulesPress={() => {}}
       />
 
       <Card className="p-4">
-        <Text className="text-xs font-bold tracking-widest" style={{ color: colors.textMuted }}>
-          MODO DE PENALIZACIÓN
+        <Text className="text-xs font-extrabold tracking-widest" style={{ color: colors.textMuted }}>
+          MODO DE PENALIZACION
         </Text>
-        <Text className="mt-2 text-xs" style={{ color: colors.textMuted }}>
-          “Unidad” es una etiqueta: sorbos / shots / puntos.
+        <Text className="mt-2 text-xs leading-5" style={{ color: colors.textMuted }}>
+          Unidad funciona como etiqueta: sorbos, shots o puntos.
         </Text>
 
         <View className="mt-3">
@@ -119,7 +126,7 @@ export default function SettingsScreen() {
 
       <View className="mt-4">
         <Card className="p-4">
-          <Text className="text-xs font-bold tracking-widest" style={{ color: colors.textMuted }}>
+          <Text className="text-xs font-extrabold tracking-widest" style={{ color: colors.textMuted }}>
             TOPE POR RONDA
           </Text>
           <TextInput
@@ -135,20 +142,20 @@ export default function SettingsScreen() {
             style={{
               backgroundColor: colors.surface2,
               borderColor: colors.border,
-              borderWidth: 1,
+              borderWidth: 2,
               borderRadius: radius.pill,
               color: colors.text,
             }}
           />
           <Text className="mt-2 text-xs" style={{ color: colors.textMuted }}>
-            Recomendación: mantenerlo bajo para control.
+            Recomendado: mantenerlo bajo para ritmo rapido.
           </Text>
         </Card>
       </View>
 
       <View className="mt-4">
         <Card className="p-4">
-          <Text className="text-xs font-bold tracking-widest" style={{ color: colors.textMuted }}>
+          <Text className="text-xs font-extrabold tracking-widest" style={{ color: colors.textMuted }}>
             NIVEL POR DEFECTO
           </Text>
 
@@ -176,16 +183,16 @@ export default function SettingsScreen() {
 
       <View className="mt-4">
         <Card className="p-4">
-          <Text className="text-xs font-bold tracking-widest" style={{ color: colors.textMuted }}>
-            TIMERS (SEGUNDOS)
+          <Text className="text-xs font-extrabold tracking-widest" style={{ color: colors.textMuted }}>
+            TIMERS BASE (SEG)
           </Text>
 
           {(
             [
-              ["rapidCategory", "Categoría relámpago"],
+              ["rapidCategory", "Categoria relampago"],
               ["rhymes", "Rimas"],
               ["sequence", "Secuencia"],
-              ["impostorQnA", "Impostor (pregunta)"],
+              ["impostorQnA", "Impostor pregunta"],
             ] as const
           ).map(([key, label]) => (
             <View
@@ -194,7 +201,7 @@ export default function SettingsScreen() {
               style={{
                 backgroundColor: colors.surface2,
                 borderColor: colors.border,
-                borderWidth: 1,
+                borderWidth: 2,
                 borderRadius: radius.lg,
                 paddingHorizontal: 12,
                 paddingVertical: 10,
@@ -205,9 +212,7 @@ export default function SettingsScreen() {
               </Text>
               <TextInput
                 value={String(timers[key])}
-                onChangeText={(t) =>
-                  setTimer(key, Number(t.replace(/[^\d]/g, "")))
-                }
+                onChangeText={(t) => setTimer(key, Number(t.replace(/[^\d]/g, "")))}
                 keyboardType="number-pad"
                 className="w-16 px-3 py-2 text-center text-sm font-extrabold"
                 style={{
@@ -222,7 +227,7 @@ export default function SettingsScreen() {
           ))}
 
           <Text className="mt-3 text-xs" style={{ color: colors.textMuted }}>
-            Haptics/sonido está activo por defecto (lo ajustamos luego).
+            Haptics y audio se pueden sumar como toggle en la siguiente iteracion.
           </Text>
         </Card>
       </View>

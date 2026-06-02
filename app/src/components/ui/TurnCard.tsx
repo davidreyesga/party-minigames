@@ -1,6 +1,9 @@
-import { Text, View } from "react-native";
-import Card from "./Card";
-import { colors } from "../../theme/tokens";
+import { useEffect, useRef } from "react";
+import { Animated, Text, View } from "react-native";
+
+import { colors, glow, radius } from "../../theme/tokens";
+import GameBadge from "./GameBadge";
+import PlayerAvatar from "./PlayerAvatar";
 
 type Props = {
   playerName?: string;
@@ -8,39 +11,66 @@ type Props = {
   subtitle?: string;
 };
 
-function initials(name?: string) {
-  const parts = (name ?? "").trim().split(" ").filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0][0]?.toUpperCase() ?? "?";
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
 export default function TurnCard({ playerName, playerColor, subtitle }: Props) {
-  return (
-    <Card className="p-4" glow>
-      <Text className="text-xs font-bold tracking-widest" style={{ color: colors.textMuted }}>
-        TURNO
-      </Text>
+  const pulse = useRef(new Animated.Value(0)).current;
 
-      <View className="mt-3 flex-row items-center gap-3">
-        <View
-          className="h-12 w-12 items-center justify-center rounded-full"
-          style={{ backgroundColor: playerColor ?? colors.primary }}
-        >
-          <Text className="text-base font-extrabold text-white">
-            {initials(playerName)}
-          </Text>
-        </View>
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulse, {
+          toValue: 0,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+
+    animation.start();
+    return () => animation.stop();
+  }, [pulse]);
+
+  return (
+    <Animated.View
+      style={{
+        backgroundColor: colors.surfaceContainer,
+        borderColor: colors.primaryContainer,
+        borderRadius: radius.md,
+        borderWidth: 4,
+        padding: 16,
+        shadowColor: glow.primary.color,
+        shadowOpacity: glow.primary.opacity,
+        shadowRadius: 24,
+        shadowOffset: { width: 0, height: 0 },
+        elevation: 10,
+        transform: [
+          {
+            scale: pulse.interpolate({
+              inputRange: [0, 1],
+              outputRange: [1, 1.01],
+            }),
+          },
+        ],
+      }}
+    >
+      <GameBadge label="Turno actual" tone="primary" />
+
+      <View className="mt-4 flex-row items-center gap-3">
+        <PlayerAvatar name={playerName} color={playerColor} size={64} active />
 
         <View className="flex-1">
-          <Text className="text-xl font-extrabold" style={{ color: colors.text }}>
-            {playerName ?? "—"}
+          <Text className="text-2xl font-extrabold" style={{ color: colors.text }}>
+            {playerName ?? "--"}
           </Text>
-          <Text className="mt-0.5 text-sm" style={{ color: colors.textMuted }}>
-            {subtitle ?? "Sigue las reglas y presiona el botón principal."}
+          <Text className="mt-1 text-sm leading-5" style={{ color: colors.textMuted }}>
+            {subtitle ?? "Sigue las reglas y presiona el boton principal."}
           </Text>
         </View>
       </View>
-    </Card>
+    </Animated.View>
   );
 }

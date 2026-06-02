@@ -1,6 +1,8 @@
 import { Text, View } from "react-native";
-import Card from "./Card";
+
 import { colors } from "../../theme/tokens";
+import Card from "./Card";
+import GameBadge from "./GameBadge";
 
 type Props = {
   title?: string;
@@ -11,19 +13,15 @@ type Props = {
 export default function PromptCard({ title, text, footnote }: Props) {
   return (
     <Card className="p-5" glow>
-      {title ? (
-        <Text className="text-xs font-bold tracking-widest" style={{ color: colors.glow }}>
-          {title.toUpperCase()}
-        </Text>
-      ) : null}
+      {title ? <GameBadge label={title} tone="cyan" /> : null}
 
-      <View className="mt-3">
-        <Text className="text-2xl font-extrabold leading-tight" style={{ color: colors.text }}>
+      <View className={title ? "mt-4" : ""}>
+        <Text className="text-2xl font-extrabold leading-9" style={{ color: colors.text }}>
           {text}
         </Text>
 
         {footnote ? (
-          <Text className="mt-3 text-xs" style={{ color: colors.textMuted }}>
+          <Text className="mt-3 text-sm leading-5" style={{ color: colors.textMuted }}>
             {footnote}
           </Text>
         ) : null}

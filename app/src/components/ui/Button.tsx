@@ -1,13 +1,14 @@
 import { ReactNode } from "react";
 import { Pressable, Text, ViewStyle } from "react-native";
-import { colors, radius, glowShadow } from "../../theme/tokens";
+
+import { colors, glow, radius } from "../../theme/tokens";
 
 type BaseProps = {
   label?: string;
   onPress: () => void;
   disabled?: boolean;
   style?: ViewStyle;
-  children?: ReactNode; // para IconButton o casos especiales
+  children?: ReactNode;
 };
 
 export function PrimaryButtonGiant({
@@ -18,21 +19,30 @@ export function PrimaryButtonGiant({
 }: BaseProps) {
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
       onPress={onPress}
       disabled={disabled}
-      className="h-14 w-full items-center justify-center active:opacity-90"
-      style={{
+      className="h-14 w-full items-center justify-center"
+      style={({ pressed }) => ({
+        // Flat native fallback until the app enables its gradient renderer.
+        backgroundColor: disabled ? colors.surfaceHigh : colors.primaryContainer,
+        borderColor: disabled ? colors.outlineVariant : colors.pinkSoft,
         borderRadius: radius.pill,
-        backgroundColor: disabled ? "#1F2A44" : colors.primary,
         borderWidth: 1,
-        borderColor: disabled ? "#24324F" : colors.glow,
-        ...(disabled ? {} : glowShadow(colors.glow)),
+        shadowColor: glow.primary.color,
+        shadowOpacity: disabled ? 0 : glow.primary.opacity,
+        shadowRadius: 24,
+        shadowOffset: { width: 0, height: 0 },
+        elevation: disabled ? 0 : 10,
+        opacity: pressed ? 0.92 : 1,
+        transform: [{ scale: pressed ? 0.98 : 1 }],
         ...style,
-      }}
+      })}
     >
       <Text
-        className="text-base font-extrabold"
-        style={{ color: disabled ? "#94A3B8" : "#FFFFFF", letterSpacing: 0.5 }}
+        className="text-base font-extrabold tracking-wide"
+        style={{ color: disabled ? colors.textMuted : colors.onPrimaryContainer }}
       >
         {label ?? "CONTINUAR"}
       </Text>
@@ -48,19 +58,22 @@ export function SecondaryButton({
 }: BaseProps) {
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
       onPress={onPress}
       disabled={disabled}
-      className="h-12 w-full items-center justify-center active:opacity-90"
-      style={{
+      className="h-12 w-full items-center justify-center"
+      style={({ pressed }) => ({
+        backgroundColor: pressed ? colors.surfaceHigh : colors.glassFill,
+        borderColor: colors.cyanDim,
         borderRadius: radius.pill,
-        backgroundColor: colors.surface2,
-        borderWidth: 1,
-        borderColor: colors.border,
-        opacity: disabled ? 0.5 : 1,
+        borderWidth: 2,
+        opacity: disabled ? 0.45 : 1,
+        transform: [{ scale: pressed ? 0.985 : 1 }],
         ...style,
-      }}
+      })}
     >
-      <Text className="text-sm font-bold" style={{ color: colors.text }}>
+      <Text className="text-sm font-extrabold tracking-wide" style={{ color: colors.cyan }}>
         {label ?? "VOLVER"}
       </Text>
     </Pressable>
@@ -75,19 +88,25 @@ export function DangerButton({
 }: BaseProps) {
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
       onPress={onPress}
       disabled={disabled}
-      className="h-12 w-full items-center justify-center active:opacity-90"
-      style={{
+      className="h-12 w-full items-center justify-center"
+      style={({ pressed }) => ({
+        backgroundColor: disabled ? colors.surfaceHigh : colors.warning,
+        borderColor: disabled ? colors.outlineVariant : colors.warningSoft,
         borderRadius: radius.pill,
-        backgroundColor: "#2A0B16",
         borderWidth: 1,
-        borderColor: "#7F1D1D",
-        opacity: disabled ? 0.5 : 1,
+        opacity: pressed ? 0.9 : 1,
+        transform: [{ scale: pressed ? 0.985 : 1 }],
         ...style,
-      }}
+      })}
     >
-      <Text className="text-sm font-extrabold" style={{ color: "#FCA5A5" }}>
+      <Text
+        className="text-sm font-extrabold tracking-wide"
+        style={{ color: disabled ? colors.textMuted : colors.onPrimaryContainer }}
+      >
         {label ?? "RESET"}
       </Text>
     </Pressable>
@@ -102,17 +121,20 @@ export function IconButton({
 }: Omit<BaseProps, "label">) {
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
       onPress={onPress}
       disabled={disabled}
-      className="h-10 w-10 items-center justify-center active:opacity-80"
-      style={{
+      className="h-12 w-12 items-center justify-center"
+      style={({ pressed }) => ({
+        backgroundColor: pressed ? colors.surfaceHigh : colors.surfaceContainer,
+        borderColor: colors.outlineVariant,
         borderRadius: radius.pill,
-        backgroundColor: colors.surface2,
         borderWidth: 1,
-        borderColor: colors.border,
-        opacity: disabled ? 0.5 : 1,
+        opacity: disabled ? 0.45 : 1,
+        transform: [{ scale: pressed ? 0.96 : 1 }],
         ...style,
-      }}
+      })}
     >
       {children}
     </Pressable>

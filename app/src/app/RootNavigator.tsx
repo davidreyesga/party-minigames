@@ -8,6 +8,7 @@ import LobbyScreen from "../screens/LobbyScreen";
 import SettingsScreen from "../screens/SettingsScreen";
 import GamesScreen from "../screens/GamesScreen";
 import GameScreen from "../screens/GameScreen"; 
+import { colors } from "../theme/tokens";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -19,7 +20,7 @@ export default function RootNavigator() {
         screenOptions={{
           headerTitleStyle: { fontWeight: "700" },
           headerShadowVisible: false,
-          contentStyle: { backgroundColor: "#FFFFFF" },
+          contentStyle: { backgroundColor: colors.bg },
         }}
       >
         <Stack.Screen

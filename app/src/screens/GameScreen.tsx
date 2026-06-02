@@ -17,13 +17,13 @@ type Props = NativeStackScreenProps<RootStackParamList, "Game">;
 
 const TITLES: Record<string, string> = {
   roulette: "Ruleta por nivel",
-  wouldYouRather: "¿Qué prefieres?",
-  rapidCategory: "Categoría relámpago",
-  slowFinger: "Dedo más lento",
+  wouldYouRather: "Que prefieres?",
+  rapidCategory: "Categoria relampago",
+  slowFinger: "Dedo mas lento",
   impostor: "Impostor",
   rhymes: "Rimas",
   sequence: "Secuencia",
-  mostLikely: "¿Quién es más probable?",
+  mostLikely: "Mas probable",
 };
 
 export default function GameScreen({ route, navigation }: Props) {
@@ -43,47 +43,41 @@ export default function GameScreen({ route, navigation }: Props) {
     <Screen scroll>
       <Header
         title={TITLES[gameId] ?? gameId}
-        subtitle="Placeholder del juego. Aquí conectaremos la lógica real en el siguiente paso."
+        subtitle="Sigan la dinamica y mantengan la ronda en movimiento."
         onRulesPress={() => {
-          // luego: abrir RulesModal
+          // siguiente iteracion: modal de reglas por juego
         }}
       />
 
       <TurnCard
         playerName={current?.name}
         playerColor={current?.color}
-        subtitle="Cuando estés listo, usa el botón principal."
+        subtitle="Completa tu reto y pulsa SIGUIENTE TURNO."
       />
 
       <View className="mt-4">
         <PromptCard
-          title="Contexto"
-          text={`Modo: ${penaltyMode} • Tope ronda: ${roundCap} • Nivel: ${defaultLevel}`}
-          footnote="Luego conectamos: motor de penalización, timer y mazos JSON."
+          title="Ronda Activa"
+          text={`Modo ${penaltyMode} | Tope ${roundCap} | Nivel ${defaultLevel}`}
+          footnote="Proximo paso: retos reales, timer y mazos por juego."
         />
       </View>
 
       <View className="mt-4 gap-3">
-        <PrimaryButtonGiant label="SIGUIENTE JUGADOR" onPress={nextPlayer} />
+        <PrimaryButtonGiant label="SIGUIENTE TURNO" onPress={nextPlayer} />
 
-        <SecondaryButton
-          label="IR A LOBBY"
-          onPress={() => navigation.navigate("Lobby")}
-        />
+        <SecondaryButton label="VOLVER AL LOBBY" onPress={() => navigation.navigate("Lobby")} />
 
-        <SecondaryButton
-          label="VOLVER A JUEGOS"
-          onPress={() => navigation.navigate("Games")}
-        />
+        <SecondaryButton label="VOLVER A JUEGOS" onPress={() => navigation.navigate("Games")} />
       </View>
 
       <View className="mt-6">
         <Card className="p-4">
-          <Text className="text-xs font-bold tracking-widest" style={{ color: colors.textMuted }}>
-            NOTA
+          <Text className="text-xs font-extrabold tracking-widest" style={{ color: colors.textMuted }}>
+            DEV NOTE
           </Text>
-          <Text className="mt-2 text-sm" style={{ color: colors.textMuted }}>
-            En este punto definiremos componentes del motor común para que todos los minijuegos reutilicen la misma lógica.
+          <Text className="mt-2 text-sm leading-6" style={{ color: colors.textMuted }}>
+            La base visual ya esta alineada para que los minijuegos entren sin rehacer UI.
           </Text>
         </Card>
       </View>

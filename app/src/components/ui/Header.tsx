@@ -1,47 +1,52 @@
 import { ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
-import { colors } from "../../theme/tokens";
+
+import { colors, glow, radius } from "../../theme/tokens";
 
 type Props = {
   title: string;
   subtitle?: string;
-  right?: ReactNode; // para meter botones extra si quieres
+  right?: ReactNode;
   onRulesPress?: () => void;
 };
 
 export default function Header({ title, subtitle, right, onRulesPress }: Props) {
   return (
-    <View
-      className="mb-4 rounded-2xl border px-4 py-3"
-      style={{ backgroundColor: colors.surface, borderColor: colors.border }}
-    >
-      <View className="flex-row items-start justify-between gap-3">
-        <View className="flex-1">
-          <Text className="text-xl font-extrabold" style={{ color: colors.text }}>
-            {title}
-          </Text>
-          {subtitle ? (
-            <Text className="mt-1 text-sm" style={{ color: colors.textMuted }}>
-              {subtitle}
+    <View className="relative mb-4 min-h-[72px] justify-center px-14 py-2">
+      <Text className="text-center text-2xl font-extrabold" style={{ color: colors.text }}>
+        {title}
+      </Text>
+      {subtitle ? (
+        <Text className="mt-1 text-center text-sm leading-5" style={{ color: colors.textMuted }}>
+          {subtitle}
+        </Text>
+      ) : null}
+
+      <View className="absolute right-0 top-2 flex-row items-center gap-2">
+        {right}
+        {onRulesPress ? (
+          <Pressable
+            accessibilityLabel="Reglas"
+            accessibilityRole="button"
+            onPress={onRulesPress}
+            className="h-12 w-12 items-center justify-center border"
+            style={({ pressed }) => ({
+              backgroundColor: pressed ? colors.surfaceHigh : colors.surfaceContainer,
+              borderColor: colors.cyanDim,
+              borderRadius: radius.pill,
+              shadowColor: glow.cyan.color,
+              shadowOpacity: pressed ? 0.32 : 0.18,
+              shadowRadius: glow.cyan.radius,
+              shadowOffset: { width: 0, height: 0 },
+              elevation: pressed ? 7 : 4,
+              transform: [{ scale: pressed ? 0.96 : 1 }],
+            })}
+          >
+            <Text className="text-lg font-extrabold" style={{ color: colors.cyan }}>
+              ?
             </Text>
-          ) : null}
-        </View>
-
-        <View className="flex-row items-center gap-2">
-          {onRulesPress ? (
-            <Pressable
-              onPress={onRulesPress}
-              className="rounded-full border px-4 py-2 active:opacity-80"
-              style={{ borderColor: colors.border, backgroundColor: colors.surface2 }}
-            >
-              <Text className="text-xs font-bold" style={{ color: colors.glow }}>
-                REGLAS
-              </Text>
-            </Pressable>
-          ) : null}
-
-          {right}
-        </View>
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
