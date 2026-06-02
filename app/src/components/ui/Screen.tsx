@@ -89,7 +89,7 @@ export default function Screen({ children, scroll = false, padded = true }: Prop
       {scroll ? (
         <ScrollView
           style={styles.content}
-          contentContainerStyle={{ paddingBottom: spacing.lg }}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: spacing.lg }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >

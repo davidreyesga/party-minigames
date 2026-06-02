@@ -5,6 +5,7 @@ import { colors, glow, radius } from "../../theme/tokens";
 
 type BaseProps = {
   label?: string;
+  accessibilityLabel?: string;
   onPress: () => void;
   disabled?: boolean;
   style?: ViewStyle;
@@ -13,12 +14,14 @@ type BaseProps = {
 
 export function PrimaryButtonGiant({
   label,
+  accessibilityLabel,
   onPress,
   disabled = false,
   style,
 }: BaseProps) {
   return (
     <Pressable
+      accessibilityLabel={accessibilityLabel ?? label ?? "Continuar"}
       accessibilityRole="button"
       accessibilityState={{ disabled }}
       onPress={onPress}
@@ -32,7 +35,7 @@ export function PrimaryButtonGiant({
         borderWidth: 1,
         shadowColor: glow.primary.color,
         shadowOpacity: disabled ? 0 : glow.primary.opacity,
-        shadowRadius: 24,
+        shadowRadius: glow.primary.radius,
         shadowOffset: { width: 0, height: 0 },
         elevation: disabled ? 0 : 10,
         opacity: pressed ? 0.92 : 1,
@@ -52,12 +55,14 @@ export function PrimaryButtonGiant({
 
 export function SecondaryButton({
   label,
+  accessibilityLabel,
   onPress,
   disabled = false,
   style,
 }: BaseProps) {
   return (
     <Pressable
+      accessibilityLabel={accessibilityLabel ?? label ?? "Volver"}
       accessibilityRole="button"
       accessibilityState={{ disabled }}
       onPress={onPress}
@@ -68,6 +73,11 @@ export function SecondaryButton({
         borderColor: colors.cyanDim,
         borderRadius: radius.pill,
         borderWidth: 2,
+        shadowColor: glow.cyan.color,
+        shadowOpacity: disabled ? 0 : pressed ? 0.18 : 0.1,
+        shadowRadius: glow.cyan.radius,
+        shadowOffset: { width: 0, height: 0 },
+        elevation: disabled ? 0 : 3,
         opacity: disabled ? 0.45 : 1,
         transform: [{ scale: pressed ? 0.985 : 1 }],
         ...style,
@@ -82,12 +92,14 @@ export function SecondaryButton({
 
 export function DangerButton({
   label,
+  accessibilityLabel,
   onPress,
   disabled = false,
   style,
 }: BaseProps) {
   return (
     <Pressable
+      accessibilityLabel={accessibilityLabel ?? label ?? "Reset"}
       accessibilityRole="button"
       accessibilityState={{ disabled }}
       onPress={onPress}
@@ -118,9 +130,11 @@ export function IconButton({
   disabled = false,
   style,
   children,
+  accessibilityLabel,
 }: Omit<BaseProps, "label">) {
   return (
     <Pressable
+      accessibilityLabel={accessibilityLabel ?? "Accion"}
       accessibilityRole="button"
       accessibilityState={{ disabled }}
       onPress={onPress}
@@ -128,9 +142,14 @@ export function IconButton({
       className="h-12 w-12 items-center justify-center"
       style={({ pressed }) => ({
         backgroundColor: pressed ? colors.surfaceHigh : colors.surfaceContainer,
-        borderColor: colors.outlineVariant,
+        borderColor: pressed ? colors.cyanDim : colors.outlineVariant,
         borderRadius: radius.pill,
         borderWidth: 1,
+        shadowColor: glow.cyan.color,
+        shadowOpacity: pressed ? 0.18 : 0,
+        shadowRadius: glow.cyan.radius,
+        shadowOffset: { width: 0, height: 0 },
+        elevation: pressed ? 4 : 0,
         opacity: disabled ? 0.45 : 1,
         transform: [{ scale: pressed ? 0.96 : 1 }],
         ...style,

@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 
-import { colors, glow, radius } from "../../theme/tokens";
+import { colors, glow, radius, shadow } from "../../theme/tokens";
 
 type Props = {
   title: string;
@@ -12,7 +12,16 @@ type Props = {
 
 export default function Header({ title, subtitle, right, onRulesPress }: Props) {
   return (
-    <View className="relative mb-4 min-h-[72px] justify-center px-14 py-2">
+    <View
+      className="relative mb-4 min-h-[96px] justify-center border px-20 py-4"
+      style={{
+        backgroundColor: colors.glassFillStrong,
+        borderColor: colors.innerBorder,
+        borderRadius: radius.md,
+        ...shadow.ios,
+        elevation: shadow.elevation,
+      }}
+    >
       <Text className="text-center text-2xl font-extrabold" style={{ color: colors.text }}>
         {title}
       </Text>
@@ -22,14 +31,14 @@ export default function Header({ title, subtitle, right, onRulesPress }: Props) 
         </Text>
       ) : null}
 
-      <View className="absolute right-0 top-2 flex-row items-center gap-2">
+      <View className="absolute right-3 top-3 flex-row items-center gap-2">
         {right}
         {onRulesPress ? (
           <Pressable
             accessibilityLabel="Reglas"
             accessibilityRole="button"
             onPress={onRulesPress}
-            className="h-12 w-12 items-center justify-center border"
+            className="h-12 items-center justify-center border px-3"
             style={({ pressed }) => ({
               backgroundColor: pressed ? colors.surfaceHigh : colors.surfaceContainer,
               borderColor: colors.cyanDim,
@@ -42,8 +51,8 @@ export default function Header({ title, subtitle, right, onRulesPress }: Props) 
               transform: [{ scale: pressed ? 0.96 : 1 }],
             })}
           >
-            <Text className="text-lg font-extrabold" style={{ color: colors.cyan }}>
-              ?
+            <Text className="text-[10px] font-extrabold tracking-wider" style={{ color: colors.cyan }}>
+              REGLAS
             </Text>
           </Pressable>
         ) : null}

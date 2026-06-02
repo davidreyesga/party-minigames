@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { View } from "react-native";
 
-import { colors, glow as electricGlow, radius } from "../../theme/tokens";
+import { colors, glow as electricGlow, radius, shadow } from "../../theme/tokens";
 
 type Props = {
   children: ReactNode;
@@ -14,15 +14,17 @@ export default function Card({ children, className = "", glow = false }: Props) 
     <View
       className={`border ${className}`}
       style={{
-        backgroundColor: colors.surfaceContainer,
+        backgroundColor: colors.glassFillStrong,
         borderColor: glow ? colors.primaryContainer : colors.innerBorder,
         borderWidth: 1,
         borderRadius: radius.md,
+        ...shadow.ios,
+        elevation: shadow.elevation,
         ...(glow
           ? {
               shadowColor: electricGlow.primary.color,
-              shadowOpacity: 0.22,
-              shadowRadius: 30,
+              shadowOpacity: electricGlow.primary.opacity,
+              shadowRadius: electricGlow.primary.radius,
               shadowOffset: { width: 0, height: 0 },
               elevation: 8,
             }
