@@ -1,3 +1,5 @@
+import type { NavigatorScreenParams } from "@react-navigation/native";
+
 export type GameId =
   | "roulette"
   | "wouldYouRather"
@@ -8,10 +10,20 @@ export type GameId =
   | "sequence"
   | "mostLikely";
 
-export type RootStackParamList = {
+export type MainTabParamList = {
   Home: undefined;
   Lobby: undefined;
-  Settings: undefined;
   Games: undefined;
+  Settings: undefined;
+};
+
+export type RootStackParamList = {
+  MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   Game: { gameId: GameId };
+
+  // Compatibility aliases for screens that still type their props against the root stack.
+  Home: undefined;
+  Lobby: undefined;
+  Games: undefined;
+  Settings: undefined;
 };
