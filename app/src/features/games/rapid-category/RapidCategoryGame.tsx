@@ -12,6 +12,7 @@ export default function RapidCategoryGame(props: GameComponentProps) {
   const handlePrimaryPress = () => {
     if (props.hasPlayers) {
       setCategory((currentCategory) => pickNextCategory(RAPID_CATEGORIES, currentCategory));
+      props.restartTimer();
     }
 
     props.onPrimaryPress();

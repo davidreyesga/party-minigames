@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Text, View } from "react-native";
 
 import type { GameBadgeTone, GameCatalogItem } from "../../data/games";
@@ -29,6 +30,9 @@ type Props = {
   timerSeconds: number;
   countdownSeconds: number;
   countdownTotalSeconds: number;
+  gameContent?: ReactNode;
+  primaryActionLabel?: string;
+  primaryActionDisabled?: boolean;
   rulesVisible: boolean;
   onOpenRules: () => void;
   onCloseRules: () => void;
@@ -74,6 +78,9 @@ export default function GameShell({
   timerSeconds,
   countdownSeconds,
   countdownTotalSeconds,
+  gameContent,
+  primaryActionLabel,
+  primaryActionDisabled = false,
   rulesVisible,
   onOpenRules,
   onCloseRules,
@@ -132,6 +139,8 @@ export default function GameShell({
           title={game.prompt.title}
         />
 
+        {gameContent}
+
         <Card className="p-5">
           <View className="items-center">
             <GameBadge label="timer sugerido" tone="cyan" selected />
@@ -174,7 +183,8 @@ export default function GameShell({
 
         <View className="gap-3">
           <PrimaryButtonGiant
-            label={hasPlayers ? "SIGUIENTE TURNO" : "INICIAR RONDA"}
+            disabled={primaryActionDisabled}
+            label={primaryActionLabel ?? (hasPlayers ? "SIGUIENTE TURNO" : "INICIAR RONDA")}
             onPress={onPrimaryPress}
           />
           <SecondaryButton label="VOLVER AL CATALOGO" onPress={onBackToCatalog} />

@@ -12,7 +12,23 @@ import SequenceGame from "./sequence/SequenceGame";
 import SlowFingerGame from "./slow-finger/SlowFingerGame";
 import WouldYouRatherGame from "./would-you-rather/WouldYouRatherGame";
 
-export type GameComponentProps = ComponentProps<typeof GameShell>;
+export type GameTimerControls = {
+  restartTimer: () => void;
+  pauseTimer: () => void;
+  resumeTimer: () => void;
+  resetTimer: () => void;
+};
+
+export type GamePlayer = {
+  id: string;
+  name: string;
+  color: string;
+};
+
+export type GameComponentProps = ComponentProps<typeof GameShell> &
+  GameTimerControls & {
+    players: readonly GamePlayer[];
+  };
 export type GameComponent = ComponentType<GameComponentProps>;
 
 export const GAME_REGISTRY: Record<GameId, GameComponent> = {

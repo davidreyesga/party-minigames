@@ -51,6 +51,7 @@ export default function GameScreen({ route, navigation }: Props) {
   const handleBackToCatalog = () => navigation.navigate("Games");
   const handleOpenRules = () => setRulesVisible(true);
   const handleCloseRules = () => setRulesVisible(false);
+  const handleRestartTimer = () => countdown.restartWith(timerSeconds);
   const handlePrimaryPress = () => {
     if (hasPlayers) {
       nextPlayer();
@@ -98,7 +99,12 @@ export default function GameScreen({ route, navigation }: Props) {
       onOpenRules={handleOpenRules}
       onPrimaryPress={handlePrimaryPress}
       penaltyMode={penaltyMode}
+      pauseTimer={countdown.pause}
+      players={players}
       playersCount={players.length}
+      resetTimer={countdown.reset}
+      restartTimer={handleRestartTimer}
+      resumeTimer={countdown.resume}
       roundCap={roundCap}
       rulesVisible={rulesVisible}
       timerSeconds={timerSeconds}
