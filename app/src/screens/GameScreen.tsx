@@ -3,8 +3,8 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Text, View } from "react-native";
 
 import type { RootStackParamList } from "../app/navigation.types";
-import GameShell from "../components/game/GameShell";
 import { getGameById } from "../data/games";
+import { getGameComponent } from "../features/games/game.registry";
 import useCountdown from "../hooks/useCountdown";
 import { useSessionStore } from "../store/session.store";
 import { useSettingsStore } from "../store/settings.store";
@@ -34,6 +34,7 @@ export default function GameScreen({ route, navigation }: Props) {
   const timers = useSettingsStore((s) => s.timers);
 
   const game = getGameById(gameId);
+  const GameComponent = getGameComponent(gameId);
   const current = players[currentIndex];
   const hasPlayers = players.length > 0;
   const timerSeconds = game?.suggestedTimerSeconds
@@ -59,7 +60,7 @@ export default function GameScreen({ route, navigation }: Props) {
     navigation.navigate("Lobby");
   };
 
-  if (!game) {
+  if (!game || !GameComponent) {
     return (
       <Screen scroll>
         <Header
@@ -85,7 +86,7 @@ export default function GameScreen({ route, navigation }: Props) {
   }
 
   return (
-    <GameShell
+    <GameComponent
       countdownSeconds={countdown.seconds}
       countdownTotalSeconds={countdown.totalSeconds}
       currentPlayer={current}
