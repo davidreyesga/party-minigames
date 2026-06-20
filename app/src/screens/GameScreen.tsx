@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Text, View } from "react-native";
 
 import type { RootStackParamList } from "../app/navigation.types";
 import { type GameBadgeTone, getGameById } from "../data/games";
+import useCountdown from "../hooks/useCountdown";
 import { useSessionStore } from "../store/session.store";
 import { useSettingsStore } from "../store/settings.store";
 
@@ -19,6 +20,8 @@ import TurnCard from "../components/ui/TurnCard";
 import { colors, radius } from "../theme/tokens";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Game">;
+
+const FALLBACK_TIMER_SECONDS = 15;
 
 function ConfigTile({
   label,
@@ -63,6 +66,16 @@ export default function GameScreen({ route, navigation }: Props) {
   const game = getGameById(gameId);
   const current = players[currentIndex];
   const hasPlayers = players.length > 0;
+  const timerSeconds = game?.suggestedTimerSeconds
+    ? timers[game.suggestedTimerSeconds]
+    : game
+      ? FALLBACK_TIMER_SECONDS
+      : 0;
+  const countdown = useCountdown(timerSeconds);
+
+  useEffect(() => {
+    countdown.restartWith(timerSeconds);
+  }, [countdown.restartWith, gameId, timerSeconds]);
 
   if (!game) {
     return (
@@ -88,9 +101,6 @@ export default function GameScreen({ route, navigation }: Props) {
       </Screen>
     );
   }
-
-  const timerKey = game.suggestedTimerSeconds ?? "impostorQnA";
-  const timerSeconds = timers[timerKey];
 
   return (
     <Screen scroll>
@@ -153,14 +163,14 @@ export default function GameScreen({ route, navigation }: Props) {
             <GameBadge label="timer sugerido" tone="cyan" selected />
             <View className="mt-5">
               <TimerRing
-                dangerThreshold={Math.max(3, Math.floor(timerSeconds / 3))}
+                dangerThreshold={Math.max(3, Math.floor(countdown.totalSeconds / 3))}
                 label={game.timerLabel}
-                seconds={timerSeconds}
-                totalSeconds={timerSeconds}
+                seconds={countdown.seconds}
+                totalSeconds={countdown.totalSeconds}
               />
             </View>
             <Text className="mt-4 text-center text-sm leading-5" style={{ color: colors.textMuted }}>
-              Usa el valor actual del store para dejar preparada la futura cuenta regresiva.
+              Cuenta regresiva activa con el valor configurado para este juego.
             </Text>
           </View>
         </Card>

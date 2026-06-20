@@ -66,7 +66,7 @@ export default function Screen({ children, scroll = false, padded = true }: Prop
 
   const inner = (
     <Animated.View
-      className={padded ? "px-5 py-4" : ""}
+      className={`${scroll ? "" : "flex-1"} ${padded ? "px-5 py-4" : ""}`}
       style={{
         opacity: mountAnim,
         transform: [
