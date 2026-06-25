@@ -6,6 +6,7 @@ import Card from "../../../components/ui/Card";
 import GameBadge from "../../../components/ui/GameBadge";
 import PlayerAvatar from "../../../components/ui/PlayerAvatar";
 import { colors, radius } from "../../../theme/tokens";
+import { mediumTap, warningTap } from "../../../utils/haptics";
 import type { GameComponentProps } from "../game.registry";
 
 type Phase = "idle" | "ready" | "running" | "result";
@@ -56,6 +57,7 @@ export default function SlowFingerGame(props: GameComponentProps) {
     // A later calibration step can bind each player to a touch before choosing the real last lifter.
     const loser = pickRandomPlayer(props.players);
 
+    warningTap();
     roundFinishedRef.current = true;
     activeTouchIdsRef.current.clear();
     setActiveTouchCount(0);
@@ -132,6 +134,7 @@ export default function SlowFingerGame(props: GameComponentProps) {
 
     if (phase === "ready") {
       clearRoundState();
+      mediumTap();
       setPhase("running");
       props.restartTimer();
       return;

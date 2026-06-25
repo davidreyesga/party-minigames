@@ -5,6 +5,7 @@ import GameShell from "../../../components/game/GameShell";
 import Card from "../../../components/ui/Card";
 import GameBadge from "../../../components/ui/GameBadge";
 import { colors, radius } from "../../../theme/tokens";
+import { lightTap } from "../../../utils/haptics";
 import type { GameComponentProps } from "../game.registry";
 
 import { pickNextDilemma, WOULD_YOU_RATHER_QUESTIONS } from "./questions";
@@ -24,6 +25,7 @@ export default function WouldYouRatherGame(props: GameComponentProps) {
       return;
     }
 
+    lightTap();
     setSelectedOption(option);
     props.pauseTimer();
   };

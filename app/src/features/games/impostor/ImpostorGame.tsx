@@ -6,6 +6,7 @@ import Card from "../../../components/ui/Card";
 import GameBadge from "../../../components/ui/GameBadge";
 import PlayerAvatar from "../../../components/ui/PlayerAvatar";
 import { colors, radius } from "../../../theme/tokens";
+import { mediumTap, successTap, warningTap } from "../../../utils/haptics";
 import type { GameComponentProps } from "../game.registry";
 
 import { IMPOSTOR_WORDS, pickImpostorId, pickSecretWord } from "./words";
@@ -66,6 +67,7 @@ export default function ImpostorGame(props: GameComponentProps) {
         return;
       case "reveal":
         if (revealPlayer) {
+          mediumTap();
           setPhase("roleShown");
         }
         return;
@@ -84,6 +86,12 @@ export default function ImpostorGame(props: GameComponentProps) {
         return;
       case "voting":
         if (selectedSuspect) {
+          if (selectedSuspect.id === impostorId) {
+            successTap();
+          } else {
+            warningTap();
+          }
+
           setVotedPlayerId(selectedSuspect.id);
           setPhase("result");
           props.pauseTimer();

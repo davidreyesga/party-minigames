@@ -1,4 +1,4 @@
-import { Text, TextInput, View } from "react-native";
+import { Pressable, Text, TextInput, View } from "react-native";
 
 import {
   type DareLevel,
@@ -35,7 +35,6 @@ const TIMER_ROWS = [
 
 const READY_SPOTS = [
   ["Modo sin alcohol", "Preparado para una unidad alternativa.", colors.success],
-  ["Vibracion", "Espacio reservado para feedback tactil.", colors.cyan],
   ["Sonidos", "Listo para senales de ronda y timer.", colors.pink],
 ] as const;
 
@@ -231,15 +230,66 @@ function FutureSettingRow({
   );
 }
 
+function HapticsSettingRow({
+  enabled,
+  onToggle,
+}: {
+  enabled: boolean;
+  onToggle: (enabled: boolean) => void;
+}) {
+  const accent = enabled ? colors.success : colors.outline;
+
+  return (
+    <Pressable
+      accessibilityLabel="Activar vibracion tactil"
+      accessibilityRole="switch"
+      accessibilityState={{ checked: enabled }}
+      onPress={() => onToggle(!enabled)}
+      className="flex-row items-center justify-between gap-3 px-3 py-3"
+      style={({ pressed }) => ({
+        backgroundColor: colors.surfaceLow,
+        borderColor: enabled ? colors.success : colors.innerBorder,
+        borderRadius: radius.default,
+        borderWidth: 1,
+        opacity: pressed ? 0.86 : 1,
+      })}
+    >
+      <View className="flex-1">
+        <Text className="text-sm font-extrabold" style={{ color: colors.text }}>
+          Vibracion tactil
+        </Text>
+        <Text className="mt-1 text-xs leading-4" style={{ color: colors.textMuted }}>
+          Feedback suave en selecciones, avances y resultados importantes.
+        </Text>
+      </View>
+
+      <View
+        className="h-8 min-w-[92px] items-center justify-center border px-3"
+        style={{
+          backgroundColor: enabled ? colors.surfaceHigh : colors.surfaceContainer,
+          borderColor: accent,
+          borderRadius: radius.pill,
+        }}
+      >
+        <Text className="text-[10px] font-extrabold tracking-widest" style={{ color: accent }}>
+          {enabled ? "ACTIVA" : "OFF"}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
 export default function SettingsScreen() {
   const penaltyMode = useSettingsStore((s) => s.penaltyMode);
   const roundCap = useSettingsStore((s) => s.roundCap);
   const defaultLevel = useSettingsStore((s) => s.defaultLevel);
+  const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled);
   const timers = useSettingsStore((s) => s.timers);
 
   const setPenaltyMode = useSettingsStore((s) => s.setPenaltyMode);
   const setRoundCap = useSettingsStore((s) => s.setRoundCap);
   const setDefaultLevel = useSettingsStore((s) => s.setDefaultLevel);
+  const setHapticsEnabled = useSettingsStore((s) => s.setHapticsEnabled);
   const setTimer = useSettingsStore((s) => s.setTimer);
 
   return (
@@ -368,6 +418,20 @@ export default function SettingsScreen() {
                 value={timers[key]}
               />
             ))}
+          </View>
+        </Card>
+
+        <Card className="p-5">
+          <SectionTitle
+            badge={hapticsEnabled ? "activa" : "off"}
+            eyebrow="FEEDBACK TACTIL"
+            subtitle="Controla las vibraciones cortas de acciones y resultados."
+            title="Siente el ritmo."
+            tone={hapticsEnabled ? "success" : "neutral"}
+          />
+
+          <View className="mt-5">
+            <HapticsSettingRow enabled={hapticsEnabled} onToggle={setHapticsEnabled} />
           </View>
         </Card>
 

@@ -6,6 +6,7 @@ import { SecondaryButton } from "../../../components/ui/Button";
 import Card from "../../../components/ui/Card";
 import GameBadge from "../../../components/ui/GameBadge";
 import { colors, radius } from "../../../theme/tokens";
+import { mediumTap } from "../../../utils/haptics";
 import type { GameComponentProps } from "../game.registry";
 
 import { pickNextItem, SEQUENCE_ITEMS } from "./items";
@@ -20,6 +21,7 @@ export default function SequenceGame(props: GameComponentProps) {
       return;
     }
 
+    mediumTap();
     setSequence((currentSequence) => {
       const previousItem = currentSequence[currentSequence.length - 1];
       return [...currentSequence, pickNextItem(SEQUENCE_ITEMS, previousItem)];

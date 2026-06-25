@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import GameShell from "../../../components/game/GameShell";
+import { mediumTap } from "../../../utils/haptics";
 import type { GameComponentProps } from "../game.registry";
 
 import { pickNextCategory, RAPID_CATEGORIES } from "./categories";
@@ -11,6 +12,7 @@ export default function RapidCategoryGame(props: GameComponentProps) {
 
   const handlePrimaryPress = () => {
     if (props.hasPlayers) {
+      mediumTap();
       setCategory((currentCategory) => pickNextCategory(RAPID_CATEGORIES, currentCategory));
       props.restartTimer();
     }

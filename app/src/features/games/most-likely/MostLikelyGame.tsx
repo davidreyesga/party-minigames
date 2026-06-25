@@ -6,6 +6,7 @@ import Card from "../../../components/ui/Card";
 import GameBadge from "../../../components/ui/GameBadge";
 import PlayerAvatar from "../../../components/ui/PlayerAvatar";
 import { colors, radius } from "../../../theme/tokens";
+import { successTap } from "../../../utils/haptics";
 import type { GameComponentProps } from "../game.registry";
 
 import { MOST_LIKELY_QUESTIONS, pickNextQuestion } from "./questions";
@@ -30,6 +31,7 @@ export default function MostLikelyGame(props: GameComponentProps) {
         return;
       }
 
+      successTap();
       setResultPlayerId(selectedPlayer.id);
       props.pauseTimer();
       return;

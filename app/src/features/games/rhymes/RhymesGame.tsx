@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import GameShell from "../../../components/game/GameShell";
+import { mediumTap } from "../../../utils/haptics";
 import type { GameComponentProps } from "../game.registry";
 
 import { pickNextWord, RHYME_WORDS } from "./words";
@@ -11,6 +12,7 @@ export default function RhymesGame(props: GameComponentProps) {
 
   const handlePrimaryPress = () => {
     if (props.hasPlayers) {
+      mediumTap();
       setWord((currentWord) => pickNextWord(RHYME_WORDS, currentWord));
       props.restartTimer();
     }

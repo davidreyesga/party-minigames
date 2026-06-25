@@ -6,6 +6,7 @@ import Card from "../../../components/ui/Card";
 import GameBadge from "../../../components/ui/GameBadge";
 import SegmentedControl, { type SegmentedOption } from "../../../components/ui/SegmentedControl";
 import { colors } from "../../../theme/tokens";
+import { heavyTap } from "../../../utils/haptics";
 import type { GameComponentProps } from "../game.registry";
 
 import {
@@ -35,6 +36,7 @@ export default function RouletteGame(props: GameComponentProps) {
 
     if (!result) {
       const nextDare = pickNextDare(DARES_BY_LEVEL[level], lastDare);
+      heavyTap();
       setResult(nextDare);
       setLastDare(nextDare);
       props.pauseTimer();

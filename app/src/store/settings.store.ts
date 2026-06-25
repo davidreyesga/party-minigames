@@ -7,6 +7,7 @@ type SettingsState = {
   penaltyMode: PenaltyMode;
   roundCap: number; // tope por ronda (en “unidades”)
   defaultLevel: DareLevel;
+  hapticsEnabled: boolean;
 
   // Timers base (segundos) por juego (MVP)
   timers: {
@@ -19,6 +20,7 @@ type SettingsState = {
   setPenaltyMode: (mode: PenaltyMode) => void;
   setRoundCap: (cap: number) => void;
   setDefaultLevel: (level: DareLevel) => void;
+  setHapticsEnabled: (enabled: boolean) => void;
   setTimer: (key: keyof SettingsState["timers"], seconds: number) => void;
 };
 
@@ -26,6 +28,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   penaltyMode: "sorbos",
   roundCap: 3,
   defaultLevel: "medio",
+  hapticsEnabled: true,
   timers: {
     rapidCategory: 8,
     rhymes: 8,
@@ -41,6 +44,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   },
 
   setDefaultLevel: (level) => set({ defaultLevel: level }),
+
+  setHapticsEnabled: (enabled) => set({ hapticsEnabled: enabled }),
 
   setTimer: (key, seconds) => {
     const safe = Number.isFinite(seconds) ? seconds : 10;
