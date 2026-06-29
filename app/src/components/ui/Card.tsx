@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { View } from "react-native";
+import { Platform, View, type ViewStyle } from "react-native";
 
 import { colors, glow as electricGlow, radius, shadow } from "../../theme/tokens";
 
@@ -8,6 +8,16 @@ type Props = {
   className?: string;
   glow?: boolean;
 };
+
+const webCardStyle =
+  Platform.OS === "web"
+    ? ({
+        touchAction: "pan-y",
+        userSelect: "none",
+        WebkitTouchCallout: "none",
+        WebkitUserSelect: "none",
+      } as unknown as ViewStyle)
+    : undefined;
 
 export default function Card({ children, className = "", glow = false }: Props) {
   return (
@@ -29,6 +39,7 @@ export default function Card({ children, className = "", glow = false }: Props) 
               elevation: 8,
             }
           : {}),
+        ...webCardStyle,
       }}
     >
       {children}

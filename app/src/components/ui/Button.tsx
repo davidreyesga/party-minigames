@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Pressable, Text, ViewStyle } from "react-native";
+import { Platform, Pressable, Text, type TextStyle, type ViewStyle } from "react-native";
 
 import { colors, glow, radius } from "../../theme/tokens";
 
@@ -11,6 +11,25 @@ type BaseProps = {
   style?: ViewStyle;
   children?: ReactNode;
 };
+
+const webButtonStyle =
+  Platform.OS === "web"
+    ? ({
+        touchAction: "pan-y",
+        userSelect: "none",
+        WebkitTouchCallout: "none",
+        WebkitUserSelect: "none",
+      } as unknown as ViewStyle)
+    : undefined;
+
+const webButtonTextStyle =
+  Platform.OS === "web"
+    ? ({
+        userSelect: "none",
+        WebkitTouchCallout: "none",
+        WebkitUserSelect: "none",
+      } as unknown as TextStyle)
+    : undefined;
 
 export function PrimaryButtonGiant({
   label,
@@ -41,11 +60,15 @@ export function PrimaryButtonGiant({
         opacity: pressed ? 0.92 : 1,
         transform: [{ scale: pressed ? 0.98 : 1 }],
         ...style,
+        ...webButtonStyle,
       })}
     >
       <Text
         className="text-base font-extrabold tracking-wide"
-        style={{ color: disabled ? colors.textMuted : colors.onPrimaryContainer }}
+        style={[
+          { color: disabled ? colors.textMuted : colors.onPrimaryContainer },
+          webButtonTextStyle,
+        ]}
       >
         {label ?? "CONTINUAR"}
       </Text>
@@ -81,9 +104,13 @@ export function SecondaryButton({
         opacity: disabled ? 0.45 : 1,
         transform: [{ scale: pressed ? 0.985 : 1 }],
         ...style,
+        ...webButtonStyle,
       })}
     >
-      <Text className="text-sm font-extrabold tracking-wide" style={{ color: colors.cyan }}>
+      <Text
+        className="text-sm font-extrabold tracking-wide"
+        style={[{ color: colors.cyan }, webButtonTextStyle]}
+      >
         {label ?? "VOLVER"}
       </Text>
     </Pressable>
@@ -113,11 +140,15 @@ export function DangerButton({
         opacity: pressed ? 0.9 : 1,
         transform: [{ scale: pressed ? 0.985 : 1 }],
         ...style,
+        ...webButtonStyle,
       })}
     >
       <Text
         className="text-sm font-extrabold tracking-wide"
-        style={{ color: disabled ? colors.textMuted : colors.onPrimaryContainer }}
+        style={[
+          { color: disabled ? colors.textMuted : colors.onPrimaryContainer },
+          webButtonTextStyle,
+        ]}
       >
         {label ?? "RESET"}
       </Text>
@@ -153,6 +184,7 @@ export function IconButton({
         opacity: disabled ? 0.45 : 1,
         transform: [{ scale: pressed ? 0.96 : 1 }],
         ...style,
+        ...webButtonStyle,
       })}
     >
       {children}

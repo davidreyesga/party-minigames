@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Platform, StyleSheet, Text, View, type ViewStyle } from "react-native";
 
 import type { GameBadgeTone, GameCatalogItem } from "../../data/games";
 import { colors, radius } from "../../theme/tokens";
@@ -39,6 +39,16 @@ type Props = {
   onPrimaryPress: () => void;
   onBackToCatalog: () => void;
 };
+
+const webShellStyle =
+  Platform.OS === "web"
+    ? ({
+        touchAction: "pan-y",
+        userSelect: "none",
+        WebkitTouchCallout: "none",
+        WebkitUserSelect: "none",
+      } as unknown as ViewStyle)
+    : undefined;
 
 function ConfigTile({
   label,
@@ -90,7 +100,7 @@ export default function GameShell({
   const primaryLabel = primaryActionLabel ?? (hasPlayers ? "SIGUIENTE TURNO" : "INICIAR RONDA");
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, webShellStyle]}>
       <Screen scroll>
         <Header title={game.title} subtitle={game.description} onRulesPress={onOpenRules} />
 

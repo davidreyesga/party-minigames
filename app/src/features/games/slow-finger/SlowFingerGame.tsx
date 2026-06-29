@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { StyleSheet, Text, View, type GestureResponderEvent } from "react-native";
+import {
+  Platform,
+  StyleSheet,
+  Text,
+  View,
+  type GestureResponderEvent,
+  type TextStyle,
+  type ViewStyle,
+} from "react-native";
 
 import GameShell from "../../../components/game/GameShell";
 import Card from "../../../components/ui/Card";
@@ -27,6 +35,25 @@ type RoundResult = {
 
 const MIN_PLAYERS = 2;
 const SIGNAL_COUNTDOWN_SECONDS = 3;
+
+const webGameControlStyle =
+  Platform.OS === "web"
+    ? ({
+        touchAction: "none",
+        userSelect: "none",
+        WebkitTouchCallout: "none",
+        WebkitUserSelect: "none",
+      } as unknown as ViewStyle)
+    : undefined;
+
+const webNoSelectTextStyle =
+  Platform.OS === "web"
+    ? ({
+        userSelect: "none",
+        WebkitTouchCallout: "none",
+        WebkitUserSelect: "none",
+      } as unknown as TextStyle)
+    : undefined;
 
 const statusLabels: Record<ZoneStatus, string> = {
   waiting: "esperando",
@@ -503,13 +530,13 @@ export default function SlowFingerGame(props: GameComponentProps) {
                 : "Cuando todas las zonas esten tocando, inicia la senal."}
           </Text>
 
-          <View style={[styles.touchBoard, { minHeight: boardMinHeight }]}>
+          <View style={[styles.touchBoard, webGameControlStyle, { minHeight: boardMinHeight }]}>
             <View style={styles.boardHeader}>
               <View style={styles.boardCopy}>
-                <Text numberOfLines={1} style={styles.boardTitle}>
+                <Text numberOfLines={1} style={[styles.boardTitle, webNoSelectTextStyle]}>
                   Tablero tactil
                 </Text>
-                <Text numberOfLines={1} style={styles.boardStatus}>
+                <Text numberOfLines={1} style={[styles.boardStatus, webNoSelectTextStyle]}>
                   {boardStatusText}
                 </Text>
               </View>
@@ -536,6 +563,7 @@ export default function SlowFingerGame(props: GameComponentProps) {
                     style={[
                       styles.playerZone,
                       usesCompactGrid ? styles.playerZoneCompact : styles.playerZoneFull,
+                      webGameControlStyle,
                       {
                         borderColor:
                           status === "touching"
@@ -556,10 +584,10 @@ export default function SlowFingerGame(props: GameComponentProps) {
                         size={usesCompactGrid ? 48 : 58}
                       />
                       <View style={styles.playerTextBlock}>
-                        <Text numberOfLines={1} style={styles.playerName}>
+                        <Text numberOfLines={1} style={[styles.playerName, webNoSelectTextStyle]}>
                           {player.name}
                         </Text>
-                        <Text style={styles.playerHint}>
+                        <Text style={[styles.playerHint, webNoSelectTextStyle]}>
                           {status === "touching"
                             ? phase === "countdown"
                               ? "mantener"
@@ -592,7 +620,9 @@ export default function SlowFingerGame(props: GameComponentProps) {
                       />
                       {(status === "released" || status === "fastest" || status === "lost") &&
                       liftPosition > 0 ? (
-                        <Text style={styles.liftOrderText}>#{liftPosition}</Text>
+                        <Text style={[styles.liftOrderText, webNoSelectTextStyle]}>
+                          #{liftPosition}
+                        </Text>
                       ) : null}
                     </View>
                   </View>
@@ -613,8 +643,10 @@ export default function SlowFingerGame(props: GameComponentProps) {
                     tone={phase === "countdown" ? "warning" : "success"}
                     selected
                   />
-                  <Text style={styles.signalNumber}>{signalOverlayValue}</Text>
-                  <Text style={styles.signalText}>
+                  <Text style={[styles.signalNumber, webNoSelectTextStyle]}>
+                    {signalOverlayValue}
+                  </Text>
+                  <Text style={[styles.signalText, webNoSelectTextStyle]}>
                     {phase === "countdown"
                       ? "No levanten el dedo hasta la senal."
                       : "La senal sono. Registrando levantamientos."}
@@ -635,7 +667,7 @@ export default function SlowFingerGame(props: GameComponentProps) {
                   {result.reason === "last-release" ? (
                     <>
                       <GameBadge label="clasificacion" tone="cyan" selected />
-                      <Text style={styles.resultTitle}>Clasificacion</Text>
+                      <Text style={[styles.resultTitle, webNoSelectTextStyle]}>Clasificacion</Text>
                       <View style={styles.classificationList}>
                         {sortedReleaseOrder.map((entry, index) => {
                           const player = props.players.find(
@@ -653,7 +685,9 @@ export default function SlowFingerGame(props: GameComponentProps) {
                                 isLoser ? styles.classificationRowLoser : null,
                               ]}
                             >
-                              <Text style={styles.rankNumber}>{index + 1}.</Text>
+                              <Text style={[styles.rankNumber, webNoSelectTextStyle]}>
+                                {index + 1}.
+                              </Text>
                               <PlayerAvatar
                                 active={isFastest}
                                 color={player?.color}
@@ -662,10 +696,13 @@ export default function SlowFingerGame(props: GameComponentProps) {
                                 size={38}
                               />
                               <View style={styles.classificationCopy}>
-                                <Text numberOfLines={1} style={styles.classificationName}>
+                                <Text
+                                  numberOfLines={1}
+                                  style={[styles.classificationName, webNoSelectTextStyle]}
+                                >
                                   {player?.name ?? "Jugador"}
                                 </Text>
-                                <Text style={styles.classificationStatus}>
+                                <Text style={[styles.classificationStatus, webNoSelectTextStyle]}>
                                   {isFastest ? "mas rapida" : isLoser ? "perdio" : "levanto"}
                                 </Text>
                               </View>
@@ -673,7 +710,9 @@ export default function SlowFingerGame(props: GameComponentProps) {
                           );
                         })}
                       </View>
-                      <Text style={styles.penaltyText}>{penaltySuggestion}</Text>
+                      <Text style={[styles.penaltyText, webNoSelectTextStyle]}>
+                        {penaltySuggestion}
+                      </Text>
                     </>
                   ) : result.reason === "early-release" ? (
                     <>
@@ -685,11 +724,15 @@ export default function SlowFingerGame(props: GameComponentProps) {
                           selected
                           size={76}
                         />
-                        <Text style={styles.resultTitle}>
+                        <Text style={[styles.resultTitle, webNoSelectTextStyle]}>
                           {loserPlayer?.name ?? "Alguien del grupo"}
                         </Text>
-                        <Text style={styles.resultText}>Razon: Levanto antes de la senal.</Text>
-                        <Text style={styles.penaltyText}>{penaltySuggestion}</Text>
+                        <Text style={[styles.resultText, webNoSelectTextStyle]}>
+                          Razon: Levanto antes de la senal.
+                        </Text>
+                        <Text style={[styles.penaltyText, webNoSelectTextStyle]}>
+                          {penaltySuggestion}
+                        </Text>
                       </View>
                     </>
                   ) : (
@@ -702,12 +745,18 @@ export default function SlowFingerGame(props: GameComponentProps) {
                           selected
                           size={76}
                         />
-                        <Text style={styles.resultTitle}>Resultado estimado</Text>
-                        <Text style={styles.resultText}>
+                        <Text style={[styles.resultTitle, webNoSelectTextStyle]}>
+                          Resultado estimado
+                        </Text>
+                        <Text style={[styles.resultText, webNoSelectTextStyle]}>
                           Resultado estimado por deteccion tactil.
                         </Text>
-                        <Text style={styles.resultText}>{result.message}</Text>
-                        <Text style={styles.penaltyText}>{penaltySuggestion}</Text>
+                        <Text style={[styles.resultText, webNoSelectTextStyle]}>
+                          {result.message}
+                        </Text>
+                        <Text style={[styles.penaltyText, webNoSelectTextStyle]}>
+                          {penaltySuggestion}
+                        </Text>
                       </View>
                     </>
                   )}

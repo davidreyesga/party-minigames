@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useRef } from "react";
-import { Animated, ScrollView, StyleSheet, View } from "react-native";
+import { Animated, Platform, ScrollView, StyleSheet, View, type ViewStyle } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { colors, gradients, spacing } from "../../theme/tokens";
@@ -9,6 +9,14 @@ type Props = {
   scroll?: boolean;
   padded?: boolean;
 };
+
+const webScrollStyle =
+  Platform.OS === "web"
+    ? ({
+        touchAction: "pan-y",
+        WebkitOverflowScrolling: "touch",
+      } as unknown as ViewStyle)
+    : undefined;
 
 function ElectricSocialBackdrop() {
   return (
@@ -88,15 +96,15 @@ export default function Screen({ children, scroll = false, padded = true }: Prop
       <ElectricSocialBackdrop />
       {scroll ? (
         <ScrollView
-          style={styles.content}
-          contentContainerStyle={{ flexGrow: 1, paddingBottom: spacing.lg }}
+          style={[styles.content, webScrollStyle]}
+          contentContainerStyle={[styles.scrollContent, webScrollStyle]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           {inner}
         </ScrollView>
       ) : (
-        <View style={styles.content}>{inner}</View>
+        <View style={[styles.content, webScrollStyle]}>{inner}</View>
       )}
     </SafeAreaView>
   );
@@ -110,6 +118,10 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     backgroundColor: "transparent",
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: spacing.lg,
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
