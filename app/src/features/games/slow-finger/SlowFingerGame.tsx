@@ -1,123 +1,325 @@
-import { useRef, useState } from "react";
-import { Text, View, type GestureResponderEvent } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { StyleSheet, Text, View, type GestureResponderEvent } from "react-native";
 
 import GameShell from "../../../components/game/GameShell";
 import Card from "../../../components/ui/Card";
 import GameBadge from "../../../components/ui/GameBadge";
 import PlayerAvatar from "../../../components/ui/PlayerAvatar";
-import { colors, radius } from "../../../theme/tokens";
-import { mediumTap, warningTap } from "../../../utils/haptics";
-import type { GameComponentProps } from "../game.registry";
+import { colors, glow, radius } from "../../../theme/tokens";
+import { heavyTap, mediumTap, warningTap } from "../../../utils/haptics";
+import type { GameComponentProps, GamePlayer } from "../game.registry";
 
-type Phase = "idle" | "ready" | "running" | "result";
+type Phase = "idle" | "ready" | "countdown" | "signal" | "result";
+type ResultReason = "early-release" | "last-release" | "fallback";
+type ZoneStatus = "waiting" | "touching" | "fastest" | "released" | "lost" | "eliminated";
+type TouchId = GestureResponderEvent["nativeEvent"]["changedTouches"][number]["identifier"];
+
+type ReleaseEntry = {
+  playerId: string;
+  releasedAt: number;
+};
+
+type RoundResult = {
+  loserId: string | null;
+  message: string;
+  reason: ResultReason;
+};
 
 const MIN_PLAYERS = 2;
+const SIGNAL_COUNTDOWN_SECONDS = 3;
 
-function pickRandomPlayer<T>(players: readonly T[]): T | undefined {
-  if (players.length === 0) {
-    return undefined;
-  }
+const statusLabels: Record<ZoneStatus, string> = {
+  waiting: "esperando",
+  touching: "tocando",
+  fastest: "mas rapido",
+  released: "levanto",
+  lost: "perdio",
+  eliminated: "eliminado",
+};
 
-  const index = Math.floor(Math.random() * players.length);
-  return players[index] ?? players[0];
+const resultReasonLabels: Record<ResultReason, string> = {
+  "early-release": "levanto antes de la senal",
+  "last-release": "fue el ultimo en levantar",
+  fallback: "deteccion incompleta",
+};
+
+function getChangedTouchIds(event: GestureResponderEvent): TouchId[] {
+  return (event.nativeEvent.changedTouches ?? []).map((touch) => touch.identifier);
+}
+
+function getPlayerName(players: readonly GamePlayer[], playerId: string | null) {
+  return players.find((player) => player.id === playerId)?.name ?? "alguien del grupo";
+}
+
+function pickFallbackPlayer(players: readonly GamePlayer[], preferredIds: readonly string[] = []) {
+  return (
+    preferredIds
+      .map((playerId) => players.find((player) => player.id === playerId))
+      .find(Boolean) ?? players[0]
+  );
 }
 
 export default function SlowFingerGame(props: GameComponentProps) {
   const [phase, setPhase] = useState<Phase>("idle");
-  const [activeTouchCount, setActiveTouchCount] = useState(0);
-  const [maxTouchCount, setMaxTouchCount] = useState(0);
+  const [signalCountdown, setSignalCountdown] = useState(SIGNAL_COUNTDOWN_SECONDS);
+  const [touchingByPlayerId, setTouchingByPlayerId] = useState<Record<string, boolean>>({});
   const [liftOrder, setLiftOrder] = useState<string[]>([]);
-  const [lastTouchId, setLastTouchId] = useState<string | null>(null);
-  const [loserPlayerId, setLoserPlayerId] = useState<string | null>(null);
+  const [releaseOrder, setReleaseOrder] = useState<ReleaseEntry[]>([]);
+  const [result, setResult] = useState<RoundResult | null>(null);
 
-  const activeTouchIdsRef = useRef<Set<string>>(new Set());
-  const hasRegisteredTouchRef = useRef(false);
+  const activeRoundPlayerIdsRef = useRef<Set<string>>(new Set());
+  const liftOrderRef = useRef<string[]>([]);
+  const releaseOrderRef = useRef<ReleaseEntry[]>([]);
   const roundFinishedRef = useRef(false);
+  const touchingByPlayerIdRef = useRef<Record<string, boolean>>({});
+  const touchIdsByPlayerRef = useRef<Record<string, Set<TouchId> | undefined>>({});
 
   const hasEnoughPlayers = props.players.length >= MIN_PLAYERS;
-  const loserPlayer = props.players.find((player) => player.id === loserPlayerId);
+  const loserPlayer = props.players.find((player) => player.id === result?.loserId);
+  const touchingCount = props.players.filter((player) => touchingByPlayerId[player.id]).length;
+  const allPlayersTouching =
+    hasEnoughPlayers && props.players.every((player) => touchingByPlayerId[player.id]);
+  const penaltySuggestion = `Sugerencia: aplica hasta ${props.roundCap} en modo ${props.penaltyMode}.`;
+  const usesCompactGrid = props.players.length >= 4;
+  const boardMinHeight =
+    props.players.length <= 2
+      ? 470
+      : props.players.length === 3
+        ? 580
+        : props.players.length === 4
+          ? 520
+          : 620;
+  const zoneMinHeight =
+    props.players.length <= 2
+      ? 184
+      : props.players.length === 3
+        ? 150
+        : props.players.length === 4
+          ? 170
+          : 136;
+  const sortedReleaseOrder = releaseOrder
+    .map((entry, index) => ({ entry, index }))
+    .sort((left, right) => left.entry.releasedAt - right.entry.releasedAt || left.index - right.index)
+    .map(({ entry }) => entry);
 
-  const clearRoundState = () => {
-    activeTouchIdsRef.current.clear();
-    hasRegisteredTouchRef.current = false;
-    roundFinishedRef.current = false;
-    setActiveTouchCount(0);
-    setMaxTouchCount(0);
-    setLiftOrder([]);
-    setLastTouchId(null);
-    setLoserPlayerId(null);
+  const setPlayerTouching = (playerId: string, isTouching: boolean) => {
+    const nextTouching = { ...touchingByPlayerIdRef.current, [playerId]: isTouching };
+
+    touchingByPlayerIdRef.current = nextTouching;
+    setTouchingByPlayerId(nextTouching);
   };
 
-  const finishRound = () => {
-    if (roundFinishedRef.current || !hasEnoughPlayers) {
+  const clearTouchTracking = () => {
+    touchingByPlayerIdRef.current = {};
+    touchIdsByPlayerRef.current = {};
+    setTouchingByPlayerId({});
+  };
+
+  const clearRoundState = () => {
+    activeRoundPlayerIdsRef.current.clear();
+    liftOrderRef.current = [];
+    releaseOrderRef.current = [];
+    roundFinishedRef.current = false;
+    clearTouchTracking();
+    setLiftOrder([]);
+    setReleaseOrder([]);
+    setResult(null);
+    setSignalCountdown(SIGNAL_COUNTDOWN_SECONDS);
+  };
+
+  const finishRound = (nextResult: RoundResult) => {
+    if (roundFinishedRef.current) {
       return;
     }
 
-    // MVP: React Native touch identifiers represent contacts, not player identities.
-    // A later calibration step can bind each player to a touch before choosing the real last lifter.
-    const loser = pickRandomPlayer(props.players);
-
     warningTap();
     roundFinishedRef.current = true;
-    activeTouchIdsRef.current.clear();
-    setActiveTouchCount(0);
-    setLoserPlayerId(loser?.id ?? null);
+    clearTouchTracking();
+    setResult(nextResult);
     setPhase("result");
     props.pauseTimer();
   };
 
-  const syncActiveTouches = (event: GestureResponderEvent) => {
-    const touches = event.nativeEvent.touches ?? [];
-    const nextTouchIds = new Set(touches.map((touch) => touch.identifier));
-    const nextTouchCount = nextTouchIds.size;
+  const finishFallbackRound = (detail = "No se pudo detectar el orden completo de levantamiento.") => {
+    const liftedIds = new Set(liftOrderRef.current);
+    const remainingIds = Array.from(activeRoundPlayerIdsRef.current).filter(
+      (playerId) => !liftedIds.has(playerId),
+    );
+    const loser = pickFallbackPlayer(props.players, remainingIds);
 
-    activeTouchIdsRef.current = nextTouchIds;
-
-    if (nextTouchCount > 0) {
-      hasRegisteredTouchRef.current = true;
-      setMaxTouchCount((currentCount) => Math.max(currentCount, nextTouchCount));
-    }
-
-    setActiveTouchCount(nextTouchCount);
-    return nextTouchCount;
+    finishRound({
+      loserId: loser?.id ?? null,
+      message: loser ? `${loser.name} pierde por deteccion incompleta.` : detail,
+      reason: "fallback",
+    });
   };
 
-  const handleTouchStart = (event: GestureResponderEvent) => {
-    if (phase !== "running") {
+  useEffect(() => {
+    if (phase !== "countdown") {
+      return undefined;
+    }
+
+    if (signalCountdown <= 0) {
+      if (activeRoundPlayerIdsRef.current.size < MIN_PLAYERS) {
+        finishFallbackRound("No habia suficientes dedos activos al llegar la senal.");
+        return undefined;
+      }
+
+      heavyTap();
+      setPhase("signal");
+      props.restartTimer();
+      return undefined;
+    }
+
+    const countdownTimer = setTimeout(() => {
+      setSignalCountdown((currentSeconds) => Math.max(0, currentSeconds - 1));
+    }, 1000);
+
+    return () => clearTimeout(countdownTimer);
+  }, [phase, props.restartTimer, signalCountdown]);
+
+  const rememberZoneTouch = (playerId: string, event: GestureResponderEvent) => {
+    const touchIds = getChangedTouchIds(event);
+    const nextTouchIds = new Set(touchIdsByPlayerRef.current[playerId] ?? []);
+
+    touchIds.forEach((touchId) => nextTouchIds.add(touchId));
+    touchIdsByPlayerRef.current = {
+      ...touchIdsByPlayerRef.current,
+      [playerId]: nextTouchIds,
+    };
+
+    setPlayerTouching(playerId, nextTouchIds.size > 0 || touchIds.length === 0);
+  };
+
+  const releaseZoneTouch = (playerId: string, event: GestureResponderEvent) => {
+    const touchIds = getChangedTouchIds(event);
+    const nextTouchIds = new Set(touchIdsByPlayerRef.current[playerId] ?? []);
+
+    if (touchIds.length === 0) {
+      nextTouchIds.clear();
+    } else {
+      touchIds.forEach((touchId) => nextTouchIds.delete(touchId));
+    }
+
+    touchIdsByPlayerRef.current = {
+      ...touchIdsByPlayerRef.current,
+      [playerId]: nextTouchIds,
+    };
+
+    setPlayerTouching(playerId, nextTouchIds.size > 0);
+    return nextTouchIds.size > 0;
+  };
+
+  const registerLiftAfterSignal = (playerId: string) => {
+    if (roundFinishedRef.current) {
       return;
     }
 
-    syncActiveTouches(event);
-  };
-
-  const handleTouchMove = (event: GestureResponderEvent) => {
-    if (phase !== "running") {
+    if (!activeRoundPlayerIdsRef.current.has(playerId)) {
+      finishFallbackRound("Una zona recibio un levantamiento fuera de la ronda activa.");
       return;
     }
 
-    syncActiveTouches(event);
-  };
-
-  const handleTouchEnd = (event: GestureResponderEvent) => {
-    if (phase !== "running") {
+    if (liftOrderRef.current.includes(playerId)) {
       return;
     }
 
-    const changedTouches = event.nativeEvent.changedTouches ?? [];
+    touchIdsByPlayerRef.current = {
+      ...touchIdsByPlayerRef.current,
+      [playerId]: new Set(),
+    };
+    setPlayerTouching(playerId, false);
 
-    if (changedTouches.length > 0) {
-      const liftedTouchIds = changedTouches.map((touch) => touch.identifier);
-      const lastLiftedTouchId = liftedTouchIds[liftedTouchIds.length - 1];
+    const nextReleaseOrder = [...releaseOrderRef.current, { playerId, releasedAt: Date.now() }];
+    releaseOrderRef.current = nextReleaseOrder;
+    setReleaseOrder(nextReleaseOrder);
 
-      setLiftOrder((currentOrder) => [...currentOrder, ...liftedTouchIds]);
-      setLastTouchId(lastLiftedTouchId ?? null);
+    const nextLiftOrder = nextReleaseOrder.map((entry) => entry.playerId);
+    liftOrderRef.current = nextLiftOrder;
+    setLiftOrder(nextLiftOrder);
+
+    const allPlayersLifted = Array.from(activeRoundPlayerIdsRef.current).every((activePlayerId) =>
+      nextLiftOrder.includes(activePlayerId),
+    );
+
+    if (!allPlayersLifted) {
+      return;
     }
 
-    const nextTouchCount = syncActiveTouches(event);
+    const loserId = nextLiftOrder[nextLiftOrder.length - 1] ?? null;
+    const loserName = getPlayerName(props.players, loserId);
 
-    if (hasRegisteredTouchRef.current && nextTouchCount === 0) {
-      finishRound();
+    finishRound({
+      loserId,
+      message: `${loserName} fue el ultimo en levantar el dedo.`,
+      reason: "last-release",
+    });
+  };
+
+  const handleZoneTouchStart = (playerId: string, event: GestureResponderEvent) => {
+    if (!hasEnoughPlayers || phase === "idle" || phase === "result") {
+      return;
     }
+
+    if (phase === "signal" && liftOrderRef.current.includes(playerId)) {
+      return;
+    }
+
+    rememberZoneTouch(playerId, event);
+  };
+
+  const handleZoneTouchEnd = (playerId: string, event: GestureResponderEvent) => {
+    if (!hasEnoughPlayers || phase === "idle" || phase === "result") {
+      return;
+    }
+
+    const wasTouching = Boolean(
+      touchingByPlayerIdRef.current[playerId] || touchIdsByPlayerRef.current[playerId]?.size,
+    );
+    releaseZoneTouch(playerId, event);
+
+    if (!wasTouching) {
+      return;
+    }
+
+    if (phase === "ready") {
+      return;
+    }
+
+    if (phase === "countdown") {
+      const playerName = getPlayerName(props.players, playerId);
+
+      finishRound({
+        loserId: playerId,
+        message: `${playerName} levanto el dedo antes de la senal.`,
+        reason: "early-release",
+      });
+      return;
+    }
+
+    registerLiftAfterSignal(playerId);
+  };
+
+  const startSignalCountdown = () => {
+    const readyPlayerIds = props.players
+      .filter((player) => touchingByPlayerIdRef.current[player.id])
+      .map((player) => player.id);
+
+    if (readyPlayerIds.length !== props.players.length) {
+      return;
+    }
+
+    activeRoundPlayerIdsRef.current = new Set(readyPlayerIds);
+    liftOrderRef.current = [];
+    releaseOrderRef.current = [];
+    roundFinishedRef.current = false;
+    setLiftOrder([]);
+    setReleaseOrder([]);
+    setResult(null);
+    setSignalCountdown(SIGNAL_COUNTDOWN_SECONDS);
+    setPhase("countdown");
+    props.pauseTimer();
+    mediumTap();
   };
 
   const handlePrimaryPress = () => {
@@ -133,10 +335,7 @@ export default function SlowFingerGame(props: GameComponentProps) {
     }
 
     if (phase === "ready") {
-      clearRoundState();
-      mediumTap();
-      setPhase("running");
-      props.restartTimer();
+      startSignalCountdown();
       return;
     }
 
@@ -144,35 +343,86 @@ export default function SlowFingerGame(props: GameComponentProps) {
       clearRoundState();
       setPhase("ready");
       props.resetTimer();
-      props.onPrimaryPress();
     }
   };
 
+  const getZoneStatus = (playerId: string): ZoneStatus => {
+    if (phase === "result" && result) {
+      if (result.reason === "early-release") {
+        return result.loserId === playerId ? "eliminated" : "released";
+      }
+
+      if (result.loserId === playerId) {
+        return "lost";
+      }
+
+      if (result.reason === "last-release" && sortedReleaseOrder[0]?.playerId === playerId) {
+        return "fastest";
+      }
+
+      return "released";
+    }
+
+    if (liftOrder.includes(playerId)) {
+      return "released";
+    }
+
+    if (touchingByPlayerId[playerId]) {
+      return "touching";
+    }
+
+    return "waiting";
+  };
+
+  const getZoneTone = (status: ZoneStatus) => {
+    if (status === "fastest") return "success";
+    if (status === "touching") return "success";
+    if (status === "released") return "cyan";
+    if (status === "lost") return "danger";
+    if (status === "eliminated") return "danger";
+    return "neutral";
+  };
+
+  const isTouchPhase = phase === "ready" || phase === "countdown" || phase === "signal";
+  const phaseBadgeLabel =
+    phase === "idle"
+      ? "preparacion"
+      : phase === "ready"
+        ? "dedos listos"
+        : phase === "countdown"
+          ? "cuenta"
+          : phase === "signal"
+            ? "senal"
+            : "resultado";
+
   let promptTitle = "Prepara la ronda";
-  let promptText = "Todos ponen un dedo en la pantalla. Cuando empiece la ronda, no lo levanten.";
-  let promptFootnote = "Pulsa PREPARAR RONDA para acomodar al grupo.";
+  let promptText = "Cada jugador pone un dedo en su zona.";
+  let promptFootnote = "Pulsa PREPARAR RONDA para activar las zonas tactiles.";
 
   if (!hasEnoughPlayers) {
-    promptTitle = "Se necesitan mínimo 2 jugadores";
+    promptTitle = "Se necesitan minimo 2 jugadores";
     promptText = "Agrega otra persona al lobby antes de iniciar Dedo mas lento.";
     promptFootnote = "Este juego necesita competencia entre al menos dos jugadores.";
   } else if (phase === "ready") {
-    promptTitle = "Dedos listos";
-    promptText = "Todos ponen un dedo en la pantalla. Cuando empiece la ronda, no lo levanten.";
-    promptFootnote = "Pulsa INICIAR y usen la zona tactil grande.";
-  } else if (phase === "running") {
-    promptTitle = activeTouchCount > 0 ? "Ronda activa" : "Esperando dedos";
-    promptText =
-      activeTouchCount > 0
-        ? `${activeTouchCount} dedo(s) tocando la pantalla. El ultimo en levantar pierde.`
-        : "Toquen la zona grande y mantengan el dedo abajo.";
-    promptFootnote = "La ronda termina cuando no queda ningun dedo activo.";
+    promptTitle = "Cada dedo en su zona";
+    promptText = "Cada jugador pone un dedo en su zona.";
+    promptFootnote = allPlayersTouching
+      ? "Todos estan tocando. Pulsa INICIAR SENAL."
+      : "El boton se activa cuando todas las zonas tienen un dedo.";
+  } else if (phase === "countdown") {
+    promptTitle = "No levanten";
+    promptText = "No levanten el dedo hasta la senal.";
+    promptFootnote = "La vibracion fuerte marca la senal para levantar.";
+  } else if (phase === "signal") {
+    promptTitle = "Senal";
+    promptText = "Ya pueden levantar el dedo. El ultimo en levantar pierde.";
+    promptFootnote = "Cada zona registra el orden de levantamiento.";
   } else if (phase === "result") {
     promptTitle = "Resultado";
-    promptText = loserPlayer
-      ? `${loserPlayer.name} pierde esta ronda. Sugerencia: aplica hasta ${props.roundCap} en modo ${props.penaltyMode}.`
-      : `No se pudo detectar un perdedor confiable. Sugerencia: aplica hasta ${props.roundCap} en modo ${props.penaltyMode}.`;
-    promptFootnote = "Pulsa NUEVA RONDA para limpiar el estado y volver a iniciar.";
+    promptText = result
+      ? `${result.message} ${penaltySuggestion}`
+      : `Resultado incompleto. ${penaltySuggestion}`;
+    promptFootnote = "Pulsa NUEVA RONDA para limpiar el estado sin salir del juego.";
   }
 
   const game = {
@@ -181,7 +431,7 @@ export default function SlowFingerGame(props: GameComponentProps) {
       ...props.game.prompt,
       title: promptTitle,
       text: promptText,
-      emptyText: "Se necesitan mínimo 2 jugadores para jugar Dedo mas lento.",
+      emptyText: "Se necesitan minimo 2 jugadores para jugar Dedo mas lento.",
       footnote: promptFootnote,
     },
   };
@@ -191,10 +441,33 @@ export default function SlowFingerGame(props: GameComponentProps) {
     : phase === "idle"
       ? "PREPARAR RONDA"
       : phase === "ready"
-        ? "INICIAR"
-        : phase === "running"
-          ? "RONDA ACTIVA"
-          : "NUEVA RONDA";
+        ? "INICIAR SENAL"
+        : phase === "result"
+          ? "NUEVA RONDA"
+          : phase === "countdown"
+            ? "CUENTA REGRESIVA"
+            : "LEVANTEN LOS DEDOS";
+
+  const primaryActionDisabled =
+    !hasEnoughPlayers ||
+    phase === "countdown" ||
+    phase === "signal" ||
+    (phase === "ready" && !allPlayersTouching);
+
+  const boardStatusText =
+    phase === "ready"
+      ? allPlayersTouching
+        ? "Todos estan tocando. Inicia la senal."
+        : `Faltan ${props.players.length - touchingCount} zona(s) por tocar.`
+      : phase === "countdown"
+        ? "No levanten hasta la senal."
+        : phase === "signal"
+          ? "Levanten. El ultimo pierde."
+          : phase === "result"
+            ? "Ronda terminada."
+            : "Prepara las zonas tactiles.";
+  const showSignalOverlay = phase === "countdown" || phase === "signal";
+  const signalOverlayValue = phase === "signal" ? "YA" : `${Math.max(1, signalCountdown)}`;
 
   const gameContent = (
     <Card className="p-5" glow>
@@ -202,110 +475,245 @@ export default function SlowFingerGame(props: GameComponentProps) {
         <>
           <GameBadge label="faltan jugadores" tone="warning" selected />
           <Text className="mt-4 text-xl font-extrabold" style={{ color: colors.text }}>
-            Se necesitan mínimo 2 jugadores
+            Se necesitan minimo 2 jugadores
           </Text>
           <Text className="mt-2 text-sm leading-5" style={{ color: colors.textMuted }}>
             Actualmente hay {props.players.length}. Agrega otra persona desde el lobby.
           </Text>
         </>
-      ) : phase === "result" ? (
-        <>
-          <GameBadge label="perdedor" tone="danger" selected />
-          <View className="mt-5 items-center">
-            <PlayerAvatar name={loserPlayer?.name} color={loserPlayer?.color} size={76} selected />
-            <Text className="mt-4 text-center text-2xl font-extrabold" style={{ color: colors.text }}>
-              Pierde {loserPlayer?.name ?? "alguien del grupo"}
-            </Text>
-            <Text className="mt-2 text-center text-sm leading-5" style={{ color: colors.textMuted }}>
-              Toques maximos detectados: {maxTouchCount}. Levantamientos registrados: {liftOrder.length}.
-            </Text>
-            <Text className="mt-3 text-center text-sm font-extrabold" style={{ color: colors.warningSoft }}>
-              Sugerencia: aplica hasta {props.roundCap} en modo {props.penaltyMode}.
-            </Text>
-          </View>
-        </>
       ) : (
         <>
           <View className="flex-row items-center justify-between gap-3">
             <GameBadge
-              label={phase === "running" ? "zona activa" : phase === "ready" ? "listos" : "preparacion"}
-              tone={phase === "running" ? "cyan" : "primary"}
+              label={phaseBadgeLabel}
+              tone={phase === "result" ? "warning" : phase === "signal" ? "cyan" : "primary"}
               selected
             />
-            <GameBadge label={`${props.players.length} jugadores`} tone="warning" />
+            <GameBadge label={`${touchingCount}/${props.players.length} dedos`} tone="cyan" />
           </View>
 
           <Text className="mt-4 text-xl font-extrabold" style={{ color: colors.text }}>
-            Todos ponen un dedo en la pantalla
+            Cada jugador pone un dedo en su zona.
           </Text>
           <Text className="mt-2 text-sm leading-5" style={{ color: colors.textMuted }}>
-            Cuando empiece la ronda, no lo levanten. Gana quien aguante mas tiempo.
+            {phase === "countdown"
+              ? "No levanten el dedo hasta la senal."
+              : phase === "signal"
+                ? "Ya pueden levantar. El ultimo en levantar sera el perdedor."
+                : "Cuando todas las zonas esten tocando, inicia la senal."}
           </Text>
 
-          <View
-            className="mt-5 min-h-[260px] items-center justify-center p-5"
-            onMoveShouldSetResponder={() => phase === "running"}
-            onResponderTerminationRequest={() => false}
-            onStartShouldSetResponder={() => phase === "running"}
-            onTouchCancel={handleTouchEnd}
-            onTouchEnd={handleTouchEnd}
-            onTouchMove={handleTouchMove}
-            onTouchStart={handleTouchStart}
-            style={{
-              backgroundColor: phase === "running" ? colors.surfaceHighest : colors.surfaceHigh,
-              borderColor: activeTouchCount > 0 ? colors.cyan : colors.outlineVariant,
-              borderRadius: radius.md,
-              borderStyle: phase === "running" ? "solid" : "dashed",
-              borderWidth: 2,
-            }}
-          >
-            <GameBadge
-              label={phase === "running" ? "tocando ahora" : "zona tactil"}
-              tone={activeTouchCount > 0 ? "success" : "neutral"}
-              selected={activeTouchCount > 0}
-            />
-            <Text className="mt-5 text-center text-6xl font-extrabold" style={{ color: colors.text }}>
-              {activeTouchCount}
-            </Text>
-            <Text className="mt-2 text-center text-sm font-extrabold" style={{ color: colors.textMuted }}>
-              dedo(s) activos
-            </Text>
-            <Text className="mt-4 text-center text-sm leading-5" style={{ color: colors.textMuted }}>
-              {phase === "running"
-                ? "Mantengan el dedo abajo. Al soltarlos todos se revela el perdedor."
-                : "Pulsa INICIAR para activar esta zona."}
-            </Text>
-          </View>
+          <View style={[styles.touchBoard, { minHeight: boardMinHeight }]}>
+            <View style={styles.boardHeader}>
+              <View style={styles.boardCopy}>
+                <Text numberOfLines={1} style={styles.boardTitle}>
+                  Tablero tactil
+                </Text>
+                <Text numberOfLines={1} style={styles.boardStatus}>
+                  {boardStatusText}
+                </Text>
+              </View>
+              <GameBadge
+                label={phase === "signal" ? "levanten" : phase === "countdown" ? "no levanten" : "zonas"}
+                tone={phase === "signal" ? "success" : phase === "countdown" ? "warning" : "cyan"}
+                selected={phase === "signal" || phase === "countdown"}
+              />
+            </View>
 
-          <View className="mt-4 flex-row gap-2">
-            <View
-              className="flex-1 px-3 py-3"
-              style={{
-                backgroundColor: colors.surfaceLow,
-                borderColor: colors.innerBorder,
-                borderRadius: radius.default,
-                borderWidth: 1,
-              }}
-            >
-              <GameBadge label="maximo" tone="cyan" />
-              <Text className="mt-3 text-lg font-extrabold" style={{ color: colors.text }}>
-                {maxTouchCount}
-              </Text>
+            <View style={styles.touchGrid}>
+              {props.players.map((player) => {
+                const status = getZoneStatus(player.id);
+                const liftPosition = liftOrder.indexOf(player.id) + 1;
+
+                return (
+                  <View
+                    key={player.id}
+                    onResponderTerminationRequest={() => false}
+                    onStartShouldSetResponder={() => isTouchPhase}
+                    onTouchCancel={(event) => handleZoneTouchEnd(player.id, event)}
+                    onTouchEnd={(event) => handleZoneTouchEnd(player.id, event)}
+                    onTouchStart={(event) => handleZoneTouchStart(player.id, event)}
+                    style={[
+                      styles.playerZone,
+                      usesCompactGrid ? styles.playerZoneCompact : styles.playerZoneFull,
+                      {
+                        borderColor:
+                          status === "touching"
+                            ? colors.success
+                            : status === "eliminated"
+                              ? colors.error
+                              : player.color,
+                        minHeight: zoneMinHeight,
+                      },
+                    ]}
+                  >
+                    <View style={styles.playerZoneTop}>
+                      <PlayerAvatar
+                        active={status === "touching"}
+                        color={player.color}
+                        name={player.name}
+                        selected={status === "eliminated"}
+                        size={usesCompactGrid ? 48 : 58}
+                      />
+                      <View style={styles.playerTextBlock}>
+                        <Text numberOfLines={1} style={styles.playerName}>
+                          {player.name}
+                        </Text>
+                        <Text style={styles.playerHint}>
+                          {status === "touching"
+                            ? phase === "countdown"
+                              ? "mantener"
+                              : "dedo abajo"
+                            : status === "fastest"
+                              ? "mas rapido"
+                              : status === "released"
+                                ? liftPosition > 0
+                                  ? `orden ${liftPosition}`
+                                  : "ronda cerrada"
+                              : status === "lost"
+                                ? "pierde"
+                                : status === "eliminated"
+                                  ? "eliminado"
+                                  : "pon tu dedo aqui"}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.zoneFooter}>
+                      <GameBadge
+                        label={statusLabels[status]}
+                        tone={getZoneTone(status)}
+                        selected={
+                          status === "touching" ||
+                          status === "fastest" ||
+                          status === "lost" ||
+                          status === "eliminated"
+                        }
+                      />
+                      {(status === "released" || status === "fastest" || status === "lost") &&
+                      liftPosition > 0 ? (
+                        <Text style={styles.liftOrderText}>#{liftPosition}</Text>
+                      ) : null}
+                    </View>
+                  </View>
+                );
+              })}
             </View>
-            <View
-              className="flex-1 px-3 py-3"
-              style={{
-                backgroundColor: colors.surfaceLow,
-                borderColor: colors.innerBorder,
-                borderRadius: radius.default,
-                borderWidth: 1,
-              }}
-            >
-              <GameBadge label="ultimo touch" tone="pink" />
-              <Text className="mt-3 text-lg font-extrabold" style={{ color: colors.text }}>
-                {lastTouchId ?? "-"}
-              </Text>
-            </View>
+
+            {showSignalOverlay ? (
+              <View pointerEvents="none" style={styles.boardOverlay}>
+                <View
+                  style={[
+                    styles.signalOverlayCard,
+                    phase === "signal" ? styles.signalOverlayCardActive : null,
+                  ]}
+                >
+                  <GameBadge
+                    label={phase === "countdown" ? "no levanten" : "levanten"}
+                    tone={phase === "countdown" ? "warning" : "success"}
+                    selected
+                  />
+                  <Text style={styles.signalNumber}>{signalOverlayValue}</Text>
+                  <Text style={styles.signalText}>
+                    {phase === "countdown"
+                      ? "No levanten el dedo hasta la senal."
+                      : "La senal sono. Registrando levantamientos."}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+
+            {phase === "result" && result ? (
+              <View pointerEvents="none" style={styles.boardOverlay}>
+                <View
+                  style={[
+                    styles.resultOverlayCard,
+                    result.reason === "last-release" ? styles.resultOverlayCardRanking : null,
+                    result.reason === "fallback" ? styles.resultOverlayCardFallback : null,
+                  ]}
+                >
+                  {result.reason === "last-release" ? (
+                    <>
+                      <GameBadge label="clasificacion" tone="cyan" selected />
+                      <Text style={styles.resultTitle}>Clasificacion</Text>
+                      <View style={styles.classificationList}>
+                        {sortedReleaseOrder.map((entry, index) => {
+                          const player = props.players.find(
+                            (currentPlayer) => currentPlayer.id === entry.playerId,
+                          );
+                          const isFastest = index === 0;
+                          const isLoser = entry.playerId === result.loserId;
+
+                          return (
+                            <View
+                              key={entry.playerId}
+                              style={[
+                                styles.classificationRow,
+                                isFastest ? styles.classificationRowFastest : null,
+                                isLoser ? styles.classificationRowLoser : null,
+                              ]}
+                            >
+                              <Text style={styles.rankNumber}>{index + 1}.</Text>
+                              <PlayerAvatar
+                                active={isFastest}
+                                color={player?.color}
+                                name={player?.name}
+                                selected={isLoser}
+                                size={38}
+                              />
+                              <View style={styles.classificationCopy}>
+                                <Text numberOfLines={1} style={styles.classificationName}>
+                                  {player?.name ?? "Jugador"}
+                                </Text>
+                                <Text style={styles.classificationStatus}>
+                                  {isFastest ? "mas rapida" : isLoser ? "perdio" : "levanto"}
+                                </Text>
+                              </View>
+                            </View>
+                          );
+                        })}
+                      </View>
+                      <Text style={styles.penaltyText}>{penaltySuggestion}</Text>
+                    </>
+                  ) : result.reason === "early-release" ? (
+                    <>
+                      <GameBadge label="perdedor automatico" tone="danger" selected />
+                      <View style={styles.resultContent}>
+                        <PlayerAvatar
+                          color={loserPlayer?.color}
+                          name={loserPlayer?.name}
+                          selected
+                          size={76}
+                        />
+                        <Text style={styles.resultTitle}>
+                          {loserPlayer?.name ?? "Alguien del grupo"}
+                        </Text>
+                        <Text style={styles.resultText}>Razon: Levanto antes de la senal.</Text>
+                        <Text style={styles.penaltyText}>{penaltySuggestion}</Text>
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      <GameBadge label="resultado estimado" tone="warning" selected />
+                      <View style={styles.resultContent}>
+                        <PlayerAvatar
+                          color={loserPlayer?.color}
+                          name={loserPlayer?.name}
+                          selected
+                          size={76}
+                        />
+                        <Text style={styles.resultTitle}>Resultado estimado</Text>
+                        <Text style={styles.resultText}>
+                          Resultado estimado por deteccion tactil.
+                        </Text>
+                        <Text style={styles.resultText}>{result.message}</Text>
+                        <Text style={styles.penaltyText}>{penaltySuggestion}</Text>
+                      </View>
+                    </>
+                  )}
+                </View>
+              </View>
+            ) : null}
           </View>
         </>
       )}
@@ -318,8 +726,247 @@ export default function SlowFingerGame(props: GameComponentProps) {
       game={game}
       gameContent={gameContent}
       onPrimaryPress={handlePrimaryPress}
-      primaryActionDisabled={!hasEnoughPlayers || phase === "running"}
+      primaryActionDisabled={primaryActionDisabled}
       primaryActionLabel={primaryActionLabel}
     />
   );
 }
+
+const styles = StyleSheet.create({
+  touchBoard: {
+    backgroundColor: colors.surfaceLowest,
+    borderColor: colors.outlineVariant,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    marginTop: 22,
+    overflow: "hidden",
+    padding: 14,
+    position: "relative",
+    shadowColor: glow.cyan.color,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.16,
+    shadowRadius: glow.cyan.radius,
+    elevation: 5,
+  },
+  boardHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 10,
+    height: 58,
+    justifyContent: "space-between",
+    paddingHorizontal: 2,
+  },
+  boardCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  boardTitle: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: "900",
+  },
+  boardStatus: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: "800",
+    marginTop: 4,
+  },
+  boardOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    backgroundColor: "rgba(17, 12, 21, 0.58)",
+    justifyContent: "center",
+    padding: 18,
+    zIndex: 10,
+  },
+  signalOverlayCard: {
+    alignItems: "center",
+    backgroundColor: colors.glassFillStrong,
+    borderColor: colors.warning,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    maxWidth: "92%",
+    minWidth: 220,
+    paddingHorizontal: 24,
+    paddingVertical: 22,
+    shadowColor: glow.pink.color,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.24,
+    shadowRadius: glow.pink.radius,
+    elevation: 6,
+  },
+  signalOverlayCardActive: {
+    borderColor: colors.success,
+    shadowColor: glow.success.color,
+    shadowOpacity: 0.32,
+  },
+  signalNumber: {
+    color: colors.text,
+    fontSize: 86,
+    fontWeight: "900",
+    lineHeight: 96,
+    marginTop: 8,
+    textAlign: "center",
+  },
+  signalText: {
+    color: colors.textMuted,
+    fontSize: 14,
+    fontWeight: "800",
+    lineHeight: 20,
+    textAlign: "center",
+  },
+  resultOverlayCard: {
+    alignItems: "center",
+    backgroundColor: colors.glassFillStrong,
+    borderColor: colors.error,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    maxWidth: "92%",
+    minWidth: "82%",
+    padding: 20,
+    shadowColor: glow.pink.color,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.26,
+    shadowRadius: glow.pink.radius,
+    elevation: 7,
+  },
+  resultOverlayCardRanking: {
+    borderColor: colors.cyanDim,
+    shadowColor: glow.cyan.color,
+  },
+  resultOverlayCardFallback: {
+    borderColor: colors.warning,
+  },
+  resultContent: {
+    alignItems: "center",
+    marginTop: 14,
+  },
+  resultTitle: {
+    color: colors.text,
+    fontSize: 24,
+    fontWeight: "900",
+    marginTop: 14,
+    textAlign: "center",
+  },
+  resultText: {
+    color: colors.textMuted,
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 19,
+    marginTop: 8,
+    textAlign: "center",
+  },
+  penaltyText: {
+    color: colors.warningSoft,
+    fontSize: 13,
+    fontWeight: "900",
+    lineHeight: 19,
+    marginTop: 10,
+    textAlign: "center",
+  },
+  classificationList: {
+    gap: 10,
+    marginTop: 16,
+    width: "100%",
+  },
+  classificationRow: {
+    alignItems: "center",
+    backgroundColor: colors.surfaceHigh,
+    borderColor: colors.innerBorder,
+    borderRadius: radius.default,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 10,
+    minHeight: 58,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    width: "100%",
+  },
+  classificationRowFastest: {
+    borderColor: colors.success,
+    shadowColor: glow.success.color,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.18,
+    shadowRadius: glow.success.radius,
+  },
+  classificationRowLoser: {
+    borderColor: colors.error,
+  },
+  rankNumber: {
+    color: colors.cyan,
+    fontSize: 18,
+    fontWeight: "900",
+    minWidth: 28,
+  },
+  classificationCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  classificationName: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: "900",
+  },
+  classificationStatus: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: "800",
+    marginTop: 3,
+  },
+  touchGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    marginTop: 16,
+    paddingBottom: 2,
+  },
+  playerZone: {
+    backgroundColor: colors.surfaceHigh,
+    borderRadius: radius.md,
+    borderWidth: 2,
+    justifyContent: "space-between",
+    padding: 14,
+    shadowColor: glow.cyan.color,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.12,
+    shadowRadius: glow.cyan.radius,
+    elevation: 4,
+  },
+  playerZoneFull: {
+    width: "100%",
+  },
+  playerZoneCompact: {
+    flexGrow: 1,
+    width: "47%",
+  },
+  playerZoneTop: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 12,
+  },
+  playerTextBlock: {
+    flex: 1,
+  },
+  playerName: {
+    color: colors.text,
+    fontSize: 17,
+    fontWeight: "900",
+  },
+  playerHint: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: "800",
+    marginTop: 4,
+  },
+  zoneFooter: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 16,
+  },
+  liftOrderText: {
+    color: colors.cyan,
+    fontSize: 18,
+    fontWeight: "900",
+  },
+});
